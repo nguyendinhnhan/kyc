@@ -22,5 +22,15 @@ Read `docs/requirements.md` for assignment acceptance criteria and documented as
 - Run checks appropriate to each change and report exact commands and results. Unrun checks are unverified, not passed. Prefer tests of observable requirements over coverage targets or tests that mirror implementation.
 - Preserve unrelated work. Do not fabricate commits, approvals, benchmarks, review evidence, or deployment success. Completing code does not authorize publishing or external side effects.
 
+## Commit messages
+When creating a commit, start its subject with exactly one of these prefixes, followed by a space and a concise description:
+
+- `feat:` for new functionality.
+- `fix:` for bug fixes.
+- `chore:` for maintenance, tooling, configuration, documentation, or refactoring without a behavior change.
+
+Examples: `feat: add draft resume`, `fix: prevent duplicate submissions`, `chore: update Docker configuration`.
+Use the literal prefixes without a scope between the type and colon. Choose the prefix based on the main purpose of the change; tests accompanying a feature or fix use that change's prefix.
+
 ## Completion report
 State what changed, which acceptance criteria it satisfies, checks actually run, and remaining risks or limitations. Update run instructions and decision records when behavior or setup changes. Record useful AI assistance and corrections in `docs/ai-usage.md` without sensitive prompts or data.
