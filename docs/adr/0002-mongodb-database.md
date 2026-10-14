@@ -6,10 +6,13 @@ Date: 2026-10-14
 R1/R12 require a real backend. ADR-0001 established Node.js as the runtime and left the database open. The KYC flow stores user accounts, identity drafts, captured images, verification status, and submission state. The data model includes nested documents (identity fields, verification history), variable document types (passport/national ID/driver's licence), and image metadata.
 
 ## Decision
-Use **MongoDB Atlas** as the primary database for the Node.js backend.
+Use **MongoDB** as the primary database for the Node.js backend, with support for both:
+- **Local MongoDB** (via Docker) for development and testing (default)
+- **MongoDB Atlas** (cloud-hosted) for production or preference
 
 Key implications:
-- Use MongoDB Atlas (cloud-hosted MongoDB) with free tier for development
+- Default to local MongoDB via Docker Compose for easy interviewer testing
+- Support MongoDB Atlas via environment variable configuration
 - Use Mongoose (or similar ODM) for schema validation and middleware
 - Store identity drafts as documents with flexible field sets per document type
 - Store image metadata in MongoDB; image files in filesystem or object storage with references
@@ -22,10 +25,12 @@ Key implications:
 3. **DynamoDB** — Managed NoSQL, good scaling. Vendor lock-in, different query patterns, more complex local development setup.
 
 ## Rationale
-- **MongoDB Atlas**: Free tier available, quick setup, no local MongoDB installation needed
+- **Flexible deployment**: Local MongoDB (Docker) for easy testing, Atlas for production
+- **Interviewer-friendly**: No account creation needed; just run `docker-compose up`
+- **No internet required**: Local MongoDB works offline
+- **Faster development**: No network latency with local database
 - Flexible schema accommodates different ID document types and evolving identity fields without migrations
 - Document model maps naturally to KYC data (user → drafts → captures → verification)
-- Fast local setup with MongoDB Atlas free tier or local Docker
 - Familiar to Node.js ecosystem
 - Change streams and aggregation pipeline useful for status tracking
 

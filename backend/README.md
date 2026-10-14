@@ -8,6 +8,27 @@ See [main README](../README.md) for prerequisites and overall project setup.
 
 ## Quick Start
 
+### Option 1: Local MongoDB with Docker (Recommended for Testing)
+
+```bash
+# Install dependencies
+npm install
+
+# Start MongoDB with Docker
+docker-compose up -d
+
+# Create environment file (already configured for local MongoDB)
+cp .env.example .env
+
+# Run development server
+npm run dev
+
+# Run tests
+npm test
+```
+
+### Option 2: MongoDB Atlas (Cloud)
+
 ```bash
 # Install dependencies
 npm install
@@ -15,23 +36,37 @@ npm install
 # Create environment file
 cp .env.example .env
 
-# Configure MongoDB Atlas URI and other variables in .env
+# Edit .env and replace MONGODB_URI with your Atlas connection string:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/kyc
 
 # Run development server
 npm run dev
 
 # Run tests
 npm test
+```
 
+### Common Commands
+
+```bash
 # Build for production
 npm run build
+
+# View logs
+docker-compose logs -f mongodb
+
+# Stop MongoDB
+docker-compose down
+
+# Stop MongoDB and delete data
+docker-compose down -v
 ```
 
 ## Architecture
 
 - **Framework**: Fastify
 - **Language**: TypeScript
-- **Database**: MongoDB Atlas (Mongoose ODM)
+- **Database**: MongoDB (Local via Docker or MongoDB Atlas)
 - **Authentication**: JWT with refresh token rotation
 - **Pattern**: Layered architecture (controllers → services → repositories)
 

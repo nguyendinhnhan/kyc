@@ -19,7 +19,7 @@ This project implements a complete KYC onboarding flow:
 - **Runtime**: Node.js
 - **Framework**: Fastify
 - **Language**: TypeScript
-- **Database**: MongoDB Atlas
+- **Database**: MongoDB (Local via Docker or MongoDB Atlas)
 - **Authentication**: JWT with refresh token rotation
 - **Validation**: Fastify built-in (Ajv)
 
@@ -61,7 +61,7 @@ kyc/
 
 - **Node.js** 18+ and npm/yarn
 - **Flutter** 3.16+ with iOS/Android setup
-- **MongoDB Atlas** account (free tier)
+- **Docker** (for local MongoDB) OR **MongoDB Atlas** account (free tier)
 - **Xcode** (for iOS development)
 - **Android Studio** (for Android development)
 
