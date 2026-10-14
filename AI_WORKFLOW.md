@@ -4,7 +4,7 @@ This is the planned workflow. Record actual usage and verification separately; t
 
 ## Instruction structure
 
-`AGENTS.md` holds shared project rules; `.cursorrules` points Cursor to them. `docs/requirements.md` maps the PDF to acceptance criteria. `ai-skills/` contains optional task-specific prompt guides. Read only what the current task needs.
+`AGENTS.md` holds shared project rules; `.cursorrules` points Cursor to them. `docs/requirements.md` maps the PDF to acceptance criteria. `skills/` contains optional task-specific prompt guides. Read only what the current task needs.
 
 ## Repeatable development loop
 

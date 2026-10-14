@@ -42,14 +42,14 @@ This project implements a complete KYC onboarding flow:
 
 ```
 kyc/
-├── mobile/              # Flutter mobile app
+├── app/                   # Flutter mobile app
 ├── backend/             # Node.js + Fastify backend
 ├── contracts/           # API specifications (OpenAPI)
 ├── docs/                # Documentation
 │   ├── adr/            # Architecture Decision Records
 │   ├── requirements.md # Assignment requirements
 │   └── ai-usage.md     # AI assistance log
-├── ai-skills/           # AI prompt templates
+├── skills/               # AI prompt templates
 ├── AGENTS.md            # Project rules
 ├── AI_WORKFLOW.md       # Development workflow
 └── README.md            # This file
@@ -100,9 +100,9 @@ kyc/
 
 ### Mobile Setup
 
-1. Navigate to mobile directory:
+1. Navigate to app directory:
    ```bash
-   cd mobile
+   cd app
    ```
 
 2. Get Flutter dependencies:
@@ -172,7 +172,7 @@ Run all tests:
 cd backend && npm test
 
 # Mobile
-cd mobile && flutter test
+cd app && flutter test
 ```
 
 ## AI-Assisted Development

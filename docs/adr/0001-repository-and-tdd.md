@@ -9,10 +9,11 @@ R1/R12 require a Flutter app and real backend source/run instructions in the sam
 Keep one Git repository, with the intended structure:
 
 ```text
-mobile/       Flutter project, platform code and tests
+app/          Flutter project, platform code and tests
 backend/      Node.js server, dependencies and tests
 contracts/    API specification and shared synthetic contract fixtures
 docs/        Requirements, decisions and AI usage evidence
+skills/      AI prompt templates and guides
 ```
 
 Use `docs/` at the root alongside those directories. The application directories will be created when implementation starts; this record does not claim they exist yet.

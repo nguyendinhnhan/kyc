@@ -154,7 +154,7 @@ Database:
 
 ```
 kyc/
-├── mobile/                   # Flutter app
+├── app/                      # Flutter app
 │   ├── lib/
 │   │   ├── core/            # Shared utilities, providers
 │   │   ├── features/        # Feature-based organization
@@ -190,7 +190,7 @@ kyc/
 │   ├── requirements.md      # Assignment requirements
 │   └── ai-usage.md          # AI assistance log
 │
-├── ai-skills/                # AI prompt templates
+├── skills/                   # AI prompt templates
 ├── AGENTS.md                 # Project rules
 ├── AI_WORKFLOW.md            # Development workflow
 └── README.md                 # Project overview

@@ -1,5 +1,5 @@
 # KYC project rules
 
-Read and follow `AGENTS.md` as the shared project guidance. Read `docs/requirements.md` for acceptance criteria and `AI_WORKFLOW.md` for the development loop. Load only the relevant prompt guides from `ai-skills/README.md`.
+Read and follow `AGENTS.md` as the shared project guidance. Read `docs/requirements.md` for acceptance criteria and `AI_WORKFLOW.md` for the development loop. Load only the relevant prompt guides from `skills/README.md`.
 
 Do not treat template examples as approved architecture or completed work. Current user instructions take precedence over this repository guidance.

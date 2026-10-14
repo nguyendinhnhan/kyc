@@ -41,3 +41,17 @@ developer decision and rationale; exact checks/results; remaining limitations.
   - MongoDB Atlas for database hosting (cloud-hosted, free tier)
 - Validation: all ADRs document context, decision, alternatives, consequences, and verification steps. Technology stack is now complete and ready for implementation.
 - Remaining: implementation can begin. First vertical slice: authentication flow.
+
+## Project initialization — 2026-10-14
+
+- Task: initialize Git repository and create project structure.
+- AI contribution: initialized Git repository, created directory structure (app/, backend/, contracts/, docs/), created .gitignore files for root, app (Flutter), and backend (Node.js), created comprehensive README files for project and each directory, created backend/uploads/.gitkeep for local image storage.
+- Developer decision: proceed with project initialization as planned. Later renamed mobile/ to app/ and ai-skills/ to skills/ for better organization and alphabetical ordering.
+- Validation: Git repository initialized successfully, initial commit created with 28 files (1982 lines). Project structure matches ADR-0001 specification.
+- Files created:
+  - Root: .gitignore, README.md
+  - app/: .gitignore, README.md (was mobile/)
+  - backend/: .gitignore, README.md, uploads/.gitkeep
+  - contracts/: README.md
+  - skills/: (was ai-skills/)
+- Next: set up backend scaffolding (Fastify + TypeScript + MongoDB Atlas connection) and app scaffolding (Flutter + Riverpod).
