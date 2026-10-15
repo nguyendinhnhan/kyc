@@ -113,6 +113,23 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   });
 
+  // Document routes (protected)
+  app.post('/user/documents', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { uploadDocumentHandler } = await import('./routes/documents');
+      return uploadDocumentHandler(request, reply);
+    },
+  });
+
+  app.get('/user/documents', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { getDocumentsHandler } = await import('./routes/documents');
+      return getDocumentsHandler(request, reply);
+    },
+  });
+
   // Error handling
   app.setErrorHandler((error, request, reply) => {
     app.log.error(error);
