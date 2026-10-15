@@ -17,6 +17,10 @@ npm install
 # Start MongoDB with Docker
 docker-compose up -d
 
+# Both MongoDB AND MongoDB Express start for debugging
+# docker-compose --profile tools up -d
+# Then open your browser: http://localhost:8081
+
 # Create environment file (already configured for local MongoDB)
 cp .env.example .env
 
@@ -49,6 +53,9 @@ npm test
 ### Common Commands
 
 ```bash
+# Test health endpoint
+curl http://localhost:3000/health
+
 # Build for production
 npm run build
 
