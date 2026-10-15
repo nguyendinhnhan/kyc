@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../auth_state.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -48,7 +49,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pop(context);
+      context.go('/login');
     } else {
       final errorMessage = ref.read(authStateProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -221,7 +222,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     onPressed: authState.isLoading
                         ? null
                         : () {
-                            Navigator.pop(context);
+                            context.go('/login');
                           },
                     child: const Text('Already have an account? Login'),
                   ),

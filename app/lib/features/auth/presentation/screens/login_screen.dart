@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../auth_state.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -159,7 +160,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: authState.isLoading
                         ? null
                         : () {
-                            Navigator.pushNamed(context, '/register');
+                            context.go('/register');
                           },
                     child: const Text('Don\'t have an account? Register'),
                   ),
