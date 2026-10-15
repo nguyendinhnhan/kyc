@@ -1,93 +1,104 @@
 # API Contracts
 
-Language-neutral API specifications for the KYC onboarding app.
+Human-readable API documentation for the KYC Onboarding App.
 
 ## Purpose
 
-This directory contains API contracts that define the interface between the Flutter mobile app and the Node.js backend. These contracts are:
+This directory contains API contracts that define the interface between the Flutter mobile app and the Node.js backend. These contracts serve as:
 
-- **Language-neutral**: Not tied to Dart or TypeScript implementations
-- **Single source of truth**: Both client and server implement these contracts
-- **Version-controlled**: Changes to contracts require updates to both sides
-- **Testable**: Synthetic fixtures can be generated from these specs
+- **Documentation** - Clear API specifications with examples
+- **Testing** - Mock data for frontend development
+- **Reference** - Single source of truth for API structure
 
 ## Contents
 
-### Markdown Documentation (Human-Readable)
-- `api/` - Human-readable API endpoint documentation
-  - `auth/` - Authentication endpoints (register, login, refresh, logout)
-  - Each endpoint has detailed request/response examples
-  - Multi-language code examples (cURL, JavaScript, Dart)
+```
+contracts/
+├── api/                    # API endpoint documentation
+│   ├── README.md          # API overview
+│   └── auth/              # Authentication endpoints
+│       ├── register.md    # POST /auth/register
+│       ├── login.md       # POST /auth/login
+│       ├── refresh.md     # POST /auth/refresh
+│       └── logout.md      # POST /auth/logout
+└── README.md              # This file
+```
 
-### OpenAPI Specification (Machine-Readable)
-- `openapi.yaml` - OpenAPI 3.0 specification (TODO)
-- Defines all endpoints, request/response schemas
-- Authentication requirements
-- Error codes and messages
+## Current Implementation
 
-### Synthetic Fixtures
-- `fixtures/` - Test data for development and testing (TODO)
-- Synthetic identity data (no real PII)
-- Sample API responses
+### ✅ Authentication Endpoints
+- **POST /auth/register** - User registration with validation
+- **POST /auth/login** - Authentication with JWT tokens
+- **POST /auth/refresh** - Token refresh/rotation
+- **POST /auth/logout** - Protected logout endpoint
+
+Each endpoint includes:
+- Request/response examples
+- Validation rules
 - Error scenarios
+- Multi-language examples (cURL, JavaScript, Dart)
 
 ## Usage
 
-### Backend Implementation
-The backend implements these contracts:
-- Validate requests against schemas
-- Return responses matching schemas
-- Use error codes as defined
+### For Backend Development
+1. Read contract before implementing endpoint
+2. Use examples for testing
+3. Ensure responses match contract structure
 
-### Mobile Implementation
-The mobile app consumes these contracts:
-- Generate API client from OpenAPI spec (optional)
-- Validate responses match expected schemas
-- Handle all defined error codes
+### For Frontend Development
+1. Use contracts to build API client
+2. Use examples as mock data
+3. Implement error handling for documented errors
 
 ### Testing
-Use synthetic fixtures for:
-- Backend integration tests
-- Mobile widget/integration tests
-- Contract verification tests
+- **Backend tests**: `cd backend && npm test`
+- **Postman collection**: `docs/postman/KYC_Auth_API.postman_collection.json`
+- **Manual testing**: Follow examples in each endpoint documentation
 
 ## Modifying Contracts
 
 When changing API contracts:
 
-1. Update `openapi.yaml` (when created)
-2. Update markdown documentation in `api/`
-3. Update synthetic fixtures if needed
-4. Update backend implementation
-5. Update mobile implementation
-6. Update tests on both sides
-7. Commit all changes together
+1. Update markdown documentation in `api/`
+2. Update backend implementation
+3. Update backend tests
+4. Update Postman collection
+5. Update mobile implementation (when built)
+6. Commit all changes together
 
-## Tools
+## Testing Tools
 
-### View Markdown Documentation
-Simply browse the `api/` directory:
+### Postman Collection
+Import `docs/postman/KYC_Auth_API.postman_collection.json` into Postman for:
+- Pre-configured requests for all endpoints
+- Automatic token management
+- Test scripts for validation
+- Error scenario testing
+
+### Backend Tests
+Run comprehensive test suite:
 ```bash
-# View auth endpoints
-cat api/auth/register.md
-cat api/auth/login.md
+cd backend
+npm test              # Run all tests
+npm run test:coverage # Run with coverage
 ```
 
-### View OpenAPI Spec (TODO)
-Use Swagger UI or Redoc to view the API:
+## Future Enhancements
 
+When time permits, consider adding:
+
+### OpenAPI Specification
+- Create `openapi.yaml` with OpenAPI 3.0 specification
+- Enables auto-generated documentation (Swagger UI)
+- Enables client code generation for multiple languages
+- Industry standard for API documentation
+
+**Tools:**
 ```bash
-# Install Swagger UI
+# View OpenAPI spec
 npm install -g swagger-ui-cli
-
-# Serve the spec
 swagger-ui serve openapi.yaml
-```
 
-Or paste the spec into https://editor.swagger.io/
-
-### Generate Client Code (Optional)
-```bash
 # Generate Dart client
 openapi-generator generate -i openapi.yaml -g dart-dio -o ./generated/dart
 
@@ -95,35 +106,45 @@ openapi-generator generate -i openapi.yaml -g dart-dio -o ./generated/dart
 openapi-generator generate -i openapi.yaml -g typescript-fetch -o ./generated/typescript
 ```
 
-Note: Client generation is optional. You can also manually implement the API calls.
+### Synthetic Fixtures
+- Create `fixtures/` directory with test data
+- Synthetic identity data (no real PII)
+- Sample API responses for all scenarios
+- Error response examples
 
-## Current Status
+**Benefits:**
+- Use in backend integration tests
+- Use in mobile widget/integration tests
+- Contract verification tests
+- Consistent test data across teams
 
-### ✅ Implemented (Markdown Documentation)
-- `/auth/register` - User registration
-- `/auth/login` - Authentication with JWT
-- `/auth/refresh` - Token refresh/rotation
-- `/auth/logout` - Token invalidation
+### Code Generation
+- Auto-generate Dart API client from OpenAPI spec
+- Auto-generate TypeScript types
+- Reduce manual implementation errors
+- Keep client code in sync with API changes
 
-### ⏳ TODO (OpenAPI & Fixtures)
-- `openapi.yaml` - OpenAPI 3.0 specification
-- `fixtures/` - Synthetic test data
-- Code generation setup
+**Note:** These enhancements are optional and not required for the assignment. The current markdown documentation is sufficient for this project.
 
-## Why Both Markdown and OpenAPI?
+## Why Markdown Documentation?
 
-**Markdown (api/)**:
-- ✅ Human-readable
-- ✅ Detailed explanations
-- ✅ Multi-language examples
+**Pros:**
+- ✅ Human-readable and easy to understand
+- ✅ Detailed explanations and context
+- ✅ Multi-language code examples
 - ✅ Implementation guidance
-- ✅ Easy to review in PRs
+- ✅ Easy to review in pull requests
+- ✅ No special tools required
 
-**OpenAPI (openapi.yaml)**:
-- ✅ Machine-readable
-- ✅ Auto-generate clients
-- ✅ Auto-generate documentation
-- ✅ Validate requests/responses
-- ✅ Industry standard
+**Cons:**
+- ❌ Can't auto-generate clients
+- ❌ Can't validate automatically
+- ❌ Manual maintenance
 
-**Together**: Best of both worlds! 🌍
+**For this assignment:** Markdown is perfect! It's simple, clear, and effective.
+
+## Resources
+
+- **Postman Collection**: `docs/postman/KYC_Auth_API.postman_collection.json`
+- **Backend Tests**: `backend/tests/`
+- **API Implementation**: `backend/src/routes/auth.ts`
