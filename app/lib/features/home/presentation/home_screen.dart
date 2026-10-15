@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../auth/presentation/auth_state.dart';
+import '../../personal_details/presentation/personal_details_state.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -8,6 +10,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
+    final personalDetailsState = ref.watch(personalDetailsStateProvider);
     final user = authState.user;
 
     return Scaffold(
@@ -71,10 +74,13 @@ class HomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    _buildStatusRow(
-                      'Personal Details',
-                      false,
-                      Icons.person,
+                    InkWell(
+                      onTap: () => context.go('/personal-details'),
+                      child: _buildStatusRow(
+                        'Personal Details',
+                        personalDetailsState.isSaved,
+                        Icons.person,
+                      ),
                     ),
                     const Divider(height: 32),
                     _buildStatusRow(
@@ -101,7 +107,7 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                // TODO: Navigate to personal details screen
+                context.go('/personal-details');
               },
               icon: const Icon(Icons.arrow_forward),
               label: const Text('Start Verification'),

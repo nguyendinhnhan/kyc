@@ -5,6 +5,7 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/register_screen.dart';
 import 'features/auth/presentation/auth_state.dart';
 import 'features/home/presentation/home_screen.dart';
+import 'features/personal_details/presentation/personal_details_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -38,6 +39,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/home',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/personal-details',
+        builder: (context, state) => const PersonalDetailsScreen(),
       ),
     ],
   );
