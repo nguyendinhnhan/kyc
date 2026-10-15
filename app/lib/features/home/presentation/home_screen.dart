@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/presentation/auth_state.dart';
 import '../../personal_details/presentation/personal_details_state.dart';
+import '../../documents/presentation/documents_state.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -11,6 +12,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final personalDetailsState = ref.watch(personalDetailsStateProvider);
+    final documentsState = ref.watch(documentsStateProvider);
     final user = authState.user;
 
     return Scaffold(
@@ -83,10 +85,13 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     const Divider(height: 32),
-                    _buildStatusRow(
-                      'Document Upload',
-                      false,
-                      Icons.description,
+                    InkWell(
+                      onTap: () => context.go('/document-upload'),
+                      child: _buildStatusRow(
+                        'Document Upload',
+                        documentsState.isUploaded,
+                        Icons.description,
+                      ),
                     ),
                     const Divider(height: 32),
                     _buildStatusRow(

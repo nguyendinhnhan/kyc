@@ -6,6 +6,7 @@ import 'features/auth/presentation/screens/register_screen.dart';
 import 'features/auth/presentation/auth_state.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/personal_details/presentation/personal_details_screen.dart';
+import 'features/documents/presentation/document_upload_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -43,6 +44,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/personal-details',
         builder: (context, state) => const PersonalDetailsScreen(),
+      ),
+      GoRoute(
+        path: '/document-upload',
+        builder: (context, state) => const DocumentUploadScreen(),
       ),
     ],
   );
