@@ -6,6 +6,7 @@ import { config } from './config';
 import { database } from './plugins/database';
 import authRoutes from './routes/auth';
 import { registerSchema, loginSchema, refreshSchema, logoutSchema } from './schemas/auth';
+import { personalDetailsSchema } from './schemas/personalDetails';
 import { authenticate } from './middleware/auth';
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -89,6 +90,26 @@ export async function buildApp(): Promise<FastifyInstance> {
     handler: async (request, reply) => {
       const { logoutHandler } = await import('./routes/auth');
       return logoutHandler(request, reply);
+    },
+  });
+
+  // User routes (protected)
+  app.post('/user/personal-details', {
+    schema: {
+      body: personalDetailsSchema,
+    },
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { savePersonalDetailsHandler } = await import('./routes/user');
+      return savePersonalDetailsHandler(request, reply);
+    },
+  });
+
+  app.get('/user/personal-details', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { getPersonalDetailsHandler } = await import('./routes/user');
+      return getPersonalDetailsHandler(request, reply);
     },
   });
 
