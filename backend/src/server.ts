@@ -4,6 +4,8 @@ import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import { config } from './config';
 import { database } from './plugins/database';
+import authRoutes from './routes/auth';
+import { registerSchema, loginSchema } from './schemas/auth';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -45,6 +47,27 @@ export async function buildApp(): Promise<FastifyInstance> {
       timestamp: new Date().toISOString(),
       database: database.isConnected() ? 'connected' : 'disconnected',
     };
+  });
+
+  // Auth routes with validation
+  app.post('/auth/register', {
+    schema: {
+      body: registerSchema,
+    },
+    handler: async (request, reply) => {
+      const { registerHandler } = await import('./routes/auth');
+      return registerHandler(request, reply);
+    },
+  });
+
+  app.post('/auth/login', {
+    schema: {
+      body: loginSchema,
+    },
+    handler: async (request, reply) => {
+      const { loginHandler } = await import('./routes/auth');
+      return loginHandler(request, reply);
+    },
   });
 
   // Error handling
