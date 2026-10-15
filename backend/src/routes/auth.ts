@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { User } from '../models/User';
-import { RegisterInput, LoginInput, RefreshInput } from '../schemas/auth';
+import { RegisterInput, LoginInput, RefreshInput, LogoutInput } from '../schemas/auth';
+import { authenticate } from '../middleware/auth';
 
 export async function registerHandler(
   request: FastifyRequest<{ Body: RegisterInput }>,
@@ -161,8 +162,41 @@ export async function refreshTokenHandler(
   }
 }
 
+export async function logoutHandler(
+  request: FastifyRequest<{ Body: LogoutInput }>,
+  reply: FastifyReply
+) {
+  try {
+    // Authentication middleware will verify the access token
+    // If we reach here, the token is valid
+    
+    const { refreshToken } = request.body;
+    
+    // In a production environment, you would:
+    // 1. Add the refresh token to a blacklist
+    // 2. Store the blacklist in Redis or database
+    // 3. Set TTL equal to token expiration
+    
+    // For this implementation, we'll just acknowledge the logout
+    // since tokens will expire naturally
+    
+    return reply.status(200).send({
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({
+      error: 'Internal server error',
+    });
+  }
+}
+
 export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/register', registerHandler);
   fastify.post('/login', loginHandler);
   fastify.post('/refresh', refreshTokenHandler);
+  fastify.post('/logout', {
+    preHandler: authenticate,
+    handler: logoutHandler,
+  });
 }

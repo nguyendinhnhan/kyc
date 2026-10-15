@@ -46,6 +46,18 @@ export const refreshSchema = {
   additionalProperties: false,
 };
 
+export const logoutSchema = {
+  type: 'object',
+  required: ['refreshToken'],
+  properties: {
+    refreshToken: {
+      type: 'string',
+      minLength: 1,
+    },
+  },
+  additionalProperties: false,
+};
+
 export interface RegisterInput {
   email: string;
   password: string;
@@ -58,5 +70,9 @@ export interface LoginInput {
 }
 
 export interface RefreshInput {
+  refreshToken: string;
+}
+
+export interface LogoutInput {
   refreshToken: string;
 }

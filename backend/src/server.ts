@@ -5,7 +5,8 @@ import multipart from '@fastify/multipart';
 import { config } from './config';
 import { database } from './plugins/database';
 import authRoutes from './routes/auth';
-import { registerSchema, loginSchema, refreshSchema } from './schemas/auth';
+import { registerSchema, loginSchema, refreshSchema, logoutSchema } from './schemas/auth';
+import { authenticate } from './middleware/auth';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -77,6 +78,17 @@ export async function buildApp(): Promise<FastifyInstance> {
     handler: async (request, reply) => {
       const { refreshTokenHandler } = await import('./routes/auth');
       return refreshTokenHandler(request, reply);
+    },
+  });
+
+  app.post('/auth/logout', {
+    schema: {
+      body: logoutSchema,
+    },
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { logoutHandler } = await import('./routes/auth');
+      return logoutHandler(request, reply);
     },
   });
 
