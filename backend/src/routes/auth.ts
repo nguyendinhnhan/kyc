@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { User } from '../models/User';
-import { RegisterInput, LoginInput } from '../schemas/auth';
+import { RegisterInput, LoginInput, RefreshInput } from '../schemas/auth';
 
 export async function registerHandler(
   request: FastifyRequest<{ Body: RegisterInput }>,
@@ -105,7 +105,64 @@ export async function loginHandler(
   }
 }
 
+export async function refreshTokenHandler(
+  request: FastifyRequest<{ Body: RefreshInput }>,
+  reply: FastifyReply
+) {
+  try {
+    const { refreshToken } = request.body;
+
+    // Verify the refresh token
+    let decoded: any;
+    try {
+      decoded = (request.server as any).jwt.verify(refreshToken);
+    } catch (error) {
+      return reply.status(401).send({
+        error: 'Invalid refresh token',
+      });
+    }
+
+    // Check if it's a refresh token (has type: 'refresh')
+    if (!decoded || decoded.type !== 'refresh') {
+      return reply.status(401).send({
+        error: 'Invalid refresh token',
+      });
+    }
+
+    // Find the user
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return reply.status(401).send({
+        error: 'Invalid refresh token',
+      });
+    }
+
+    // Generate new tokens
+    const newAccessToken = (request.server as any).jwt.sign(
+      { userId: user._id, email: user.email },
+      { expiresIn: '15m' }
+    );
+
+    const newRefreshToken = (request.server as any).jwt.sign(
+      { userId: user._id, email: user.email, type: 'refresh' },
+      { expiresIn: '7d' }
+    );
+
+    return reply.status(200).send({
+      message: 'Token refreshed successfully',
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({
+      error: 'Internal server error',
+    });
+  }
+}
+
 export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/register', registerHandler);
   fastify.post('/login', loginHandler);
+  fastify.post('/refresh', refreshTokenHandler);
 }

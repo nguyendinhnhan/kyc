@@ -5,7 +5,7 @@ import multipart from '@fastify/multipart';
 import { config } from './config';
 import { database } from './plugins/database';
 import authRoutes from './routes/auth';
-import { registerSchema, loginSchema } from './schemas/auth';
+import { registerSchema, loginSchema, refreshSchema } from './schemas/auth';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -67,6 +67,16 @@ export async function buildApp(): Promise<FastifyInstance> {
     handler: async (request, reply) => {
       const { loginHandler } = await import('./routes/auth');
       return loginHandler(request, reply);
+    },
+  });
+
+  app.post('/auth/refresh', {
+    schema: {
+      body: refreshSchema,
+    },
+    handler: async (request, reply) => {
+      const { refreshTokenHandler } = await import('./routes/auth');
+      return refreshTokenHandler(request, reply);
     },
   });
 
