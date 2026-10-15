@@ -130,6 +130,40 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   });
 
+  // Selfie routes (protected)
+  app.post('/user/selfie', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { uploadSelfieHandler } = await import('./routes/selfie');
+      return uploadSelfieHandler(request, reply);
+    },
+  });
+
+  app.get('/user/selfie', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { getSelfieHandler } = await import('./routes/selfie');
+      return getSelfieHandler(request, reply);
+    },
+  });
+
+  // Submission routes (protected)
+  app.post('/user/submit', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { submitKYCHandler } = await import('./routes/submission');
+      return submitKYCHandler(request, reply);
+    },
+  });
+
+  app.get('/user/submission', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { getSubmissionHandler } = await import('./routes/submission');
+      return getSubmissionHandler(request, reply);
+    },
+  });
+
   // Error handling
   app.setErrorHandler((error, request, reply) => {
     app.log.error(error);

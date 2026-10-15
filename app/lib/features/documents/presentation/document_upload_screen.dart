@@ -174,24 +174,28 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    ..._documentTypes.map((type) {
-                      return RadioListTile<String>(
-                        title: Row(
-                          children: [
-                            Icon(type['icon'] as IconData),
-                            const SizedBox(width: 12),
-                            Text(type['label'] as String),
-                          ],
-                        ),
-                        value: type['value'] as String,
-                        groupValue: _selectedType,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedType = value!;
-                          });
-                        },
-                      );
-                    }),
+                    RadioGroup<String>(
+                      groupValue: _selectedType,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedType = value!;
+                        });
+                      },
+                      child: Column(
+                        children: _documentTypes.map((type) {
+                          return RadioListTile<String>(
+                            title: Row(
+                              children: [
+                                Icon(type['icon'] as IconData),
+                                const SizedBox(width: 12),
+                                Text(type['label'] as String),
+                              ],
+                            ),
+                            value: type['value'] as String,
+                          );
+                        }).toList(),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: _documentNumberController,

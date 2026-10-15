@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../auth/presentation/auth_state.dart';
 import '../../personal_details/presentation/personal_details_state.dart';
 import '../../documents/presentation/documents_state.dart';
+import '../../selfie/presentation/selfie_state.dart';
+import '../../submission/presentation/submission_state.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -13,6 +15,8 @@ class HomeScreen extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final personalDetailsState = ref.watch(personalDetailsStateProvider);
     final documentsState = ref.watch(documentsStateProvider);
+    final selfieState = ref.watch(selfieStateProvider);
+    final submissionState = ref.watch(submissionStateProvider);
     final user = authState.user;
 
     return Scaffold(
@@ -94,16 +98,22 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     const Divider(height: 32),
-                    _buildStatusRow(
-                      'Selfie Capture',
-                      false,
-                      Icons.camera_alt,
+                    InkWell(
+                      onTap: () => context.go('/selfie-capture'),
+                      child: _buildStatusRow(
+                        'Selfie Capture',
+                        selfieState.isUploaded,
+                        Icons.camera_alt,
+                      ),
                     ),
                     const Divider(height: 32),
-                    _buildStatusRow(
-                      'Verification',
-                      false,
-                      Icons.verified,
+                    InkWell(
+                      onTap: () => context.go('/review-submit'),
+                      child: _buildStatusRow(
+                        'Verification',
+                        submissionState.isSubmitted,
+                        Icons.verified,
+                      ),
                     ),
                   ],
                 ),
@@ -112,10 +122,10 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                context.go('/personal-details');
+                context.go('/review-submit');
               },
               icon: const Icon(Icons.arrow_forward),
-              label: const Text('Start Verification'),
+              label: const Text('Review & Submit'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,

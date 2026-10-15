@@ -33,6 +33,9 @@ dependencies:
   # Image/Camera
   image_picker: ^1.0.4
 
+  # Utilities
+  intl: ^0.19.0
+
   # UI
   cupertino_icons: ^1.0.8
 

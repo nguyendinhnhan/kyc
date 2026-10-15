@@ -7,6 +7,8 @@ import 'features/auth/presentation/auth_state.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/personal_details/presentation/personal_details_screen.dart';
 import 'features/documents/presentation/document_upload_screen.dart';
+import 'features/selfie/presentation/selfie_capture_screen.dart';
+import 'features/submission/presentation/review_submit_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -48,6 +50,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/document-upload',
         builder: (context, state) => const DocumentUploadScreen(),
+      ),
+      GoRoute(
+        path: '/selfie-capture',
+        builder: (context, state) => const SelfieCaptureScreen(),
+      ),
+      GoRoute(
+        path: '/review-submit',
+        builder: (context, state) => const ReviewSubmitScreen(),
       ),
     ],
   );
