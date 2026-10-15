@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "KYC Backend - Authentication API",
-    "description": "Collection for testing KYC backend authentication endpoints",
+    "name": "KYC Backend API",
+    "description": "Collection for testing KYC backend endpoints (Auth, User, Health)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -378,6 +378,108 @@
               "path": ["auth", "register"]
             },
             "description": "Test registration with password too short"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Save Personal Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Personal details saved:', response.message);",
+                  "}",
+                  "",
+                  "pm.test('Status code is correct', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test('Personal details saved successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('message');",
+                  "    pm.expect(response).to.have.property('personalDetails');",
+                  "    pm.expect(response.personalDetails).to.have.property('nationality');",
+                  "    pm.expect(response.personalDetails).to.have.property('phone');",
+                  "    pm.expect(response.personalDetails).to.have.property('address');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dateOfBirth\": \"1990-01-15\",\n  \"nationality\": \"American\",\n  \"phone\": \"+1234567890\",\n  \"address\": {\n    \"street\": \"123 Main Street\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postalCode\": \"10001\",\n    \"country\": \"USA\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/personal-details",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "personal-details"]
+            },
+            "description": "Save or update user's personal details (requires authentication)"
+          }
+        },
+        {
+          "name": "Get Personal Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Personal details retrieved:', response.personalDetails.nationality);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Personal details retrieved successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('personalDetails');",
+                  "    pm.expect(response.personalDetails).to.have.property('nationality');",
+                  "    pm.expect(response.personalDetails).to.have.property('phone');",
+                  "    pm.expect(response.personalDetails).to.have.property('address');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/personal-details",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "personal-details"]
+            },
+            "description": "Retrieve user's personal details (requires authentication)"
           }
         }
       ]
