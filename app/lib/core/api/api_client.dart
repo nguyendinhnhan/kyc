@@ -13,6 +13,7 @@ class ApiClient {
   final TokenStorage _tokenStorage;
 
   ApiClient(this._tokenStorage) {
+    print('🔵 Initializing API Client with base URL: ${AppConfig.apiBaseUrl}');
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConfig.apiBaseUrl,
