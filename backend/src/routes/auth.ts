@@ -8,6 +8,8 @@ export async function registerHandler(
   reply: FastifyReply
 ) {
   try {
+
+    console.log('Registering user:', request.body);
     const { email, password, fullName } = request.body;
 
     // Create new user

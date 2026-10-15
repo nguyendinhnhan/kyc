@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../config/app_config.dart';
 import '../storage/token_storage.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
@@ -14,9 +15,9 @@ class ApiClient {
   ApiClient(this._tokenStorage) {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://localhost:3000',
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        baseUrl: AppConfig.apiBaseUrl,
+        connectTimeout: Duration(milliseconds: AppConfig.apiConnectTimeout),
+        receiveTimeout: Duration(milliseconds: AppConfig.apiReceiveTimeout),
         headers: {
           'Content-Type': 'application/json',
         },

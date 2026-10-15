@@ -85,3 +85,12 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Environment files (keep templates)
+.env
+.env.local
+.env.*.local
+# But allow .env.development, .env.staging, .env.production
+!.env.development
+!.env.staging
+!.env.production
