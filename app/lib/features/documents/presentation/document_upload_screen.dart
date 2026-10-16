@@ -159,7 +159,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      context.go('/home');
+      context.pop();
     } else {
       final errorMessage = ref.read(documentsStateProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(

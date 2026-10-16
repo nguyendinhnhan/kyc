@@ -182,7 +182,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      context.go('/home');
+      context.pop();
     } else {
       final errorMessage = ref.read(personalDetailsStateProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(

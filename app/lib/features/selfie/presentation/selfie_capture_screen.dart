@@ -121,7 +121,7 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      context.go('/home');
+      context.pop();
     } else {
       final errorMessage = ref.read(selfieStateProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
