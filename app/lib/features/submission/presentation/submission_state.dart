@@ -2,10 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/submission_repository.dart';
 import '../domain/submission.dart';
 
-final submissionStateProvider = StateNotifierProvider<SubmissionNotifier, SubmissionState>((ref) {
-  final repository = ref.watch(submissionRepositoryProvider);
-  return SubmissionNotifier(repository);
-});
+final submissionStateProvider =
+    StateNotifierProvider<SubmissionNotifier, SubmissionState>((ref) {
+      final repository = ref.watch(submissionRepositoryProvider);
+      return SubmissionNotifier(repository);
+    });
 
 class SubmissionState {
   final bool isLoading;
@@ -53,10 +54,7 @@ class SubmissionNotifier extends StateNotifier<SubmissionState> {
         isSubmitted: result.submission?.isSubmitted ?? false,
       );
     } else {
-      state = state.copyWith(
-        isLoading: false,
-        isSubmitted: false,
-      );
+      state = state.copyWith(isLoading: false, isSubmitted: false);
     }
   }
 
@@ -70,16 +68,29 @@ class SubmissionNotifier extends StateNotifier<SubmissionState> {
       await loadSubmission();
       return true;
     } else {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: result.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: result.message);
       return false;
     }
   }
 
   void clearError() {
     state = state.copyWith(clearError: true);
+  }
+
+  Future<void> resetSubmission() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    final result = await _repository.resetSubmission();
+
+    if (result.isSuccess && result.submission != null) {
+      state = state.copyWith(
+        isLoading: false,
+        submission: result.submission,
+        isSubmitted: false,
+      );
+    } else {
+      state = state.copyWith(isLoading: false, errorMessage: result.message);
+    }
   }
 
   void reset() {

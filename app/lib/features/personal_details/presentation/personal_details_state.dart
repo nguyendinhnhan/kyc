@@ -1,11 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/personal_details_repository.dart';
 import '../domain/personal_details.dart';
+import '../../submission/presentation/submission_state.dart';
+import '../../submission/domain/submission.dart';
 
-final personalDetailsStateProvider = StateNotifierProvider<PersonalDetailsNotifier, PersonalDetailsState>((ref) {
-  final repository = ref.watch(personalDetailsRepositoryProvider);
-  return PersonalDetailsNotifier(repository);
-});
+final personalDetailsStateProvider =
+    StateNotifierProvider<PersonalDetailsNotifier, PersonalDetailsState>((ref) {
+      final repository = ref.watch(personalDetailsRepositoryProvider);
+      return PersonalDetailsNotifier(repository, ref);
+    });
 
 class PersonalDetailsState {
   final bool isLoading;
@@ -38,8 +41,10 @@ class PersonalDetailsState {
 
 class PersonalDetailsNotifier extends StateNotifier<PersonalDetailsState> {
   final PersonalDetailsRepository _repository;
+  final Ref _ref;
 
-  PersonalDetailsNotifier(this._repository) : super(PersonalDetailsState());
+  PersonalDetailsNotifier(this._repository, this._ref)
+    : super(PersonalDetailsState());
 
   Future<void> loadPersonalDetails() async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -57,7 +62,9 @@ class PersonalDetailsNotifier extends StateNotifier<PersonalDetailsState> {
         isLoading: false,
         isSaved: false,
         // Don't show error for 404 (no details yet)
-        errorMessage: result.message.contains('not found') ? null : result.message,
+        errorMessage: result.message.contains('not found')
+            ? null
+            : result.message,
       );
     }
   }
@@ -83,12 +90,13 @@ class PersonalDetailsNotifier extends StateNotifier<PersonalDetailsState> {
         details: result.personalDetails,
         isSaved: true,
       );
+
+      // Clear personal details rejection from submission state
+      _clearPersonalDetailsRejection();
+
       return true;
     } else {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: result.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: result.message);
       return false;
     }
   }
@@ -99,5 +107,48 @@ class PersonalDetailsNotifier extends StateNotifier<PersonalDetailsState> {
 
   void reset() {
     state = PersonalDetailsState();
+  }
+
+  void _clearPersonalDetailsRejection() async {
+    final submissionNotifier = _ref.read(submissionStateProvider.notifier);
+    final currentSubmission = submissionNotifier.state.submission;
+
+    if (currentSubmission?.rejectionDetails != null) {
+      final rejectionDetails = currentSubmission!.rejectionDetails!;
+
+      // Create new rejection details without personal details
+      final updatedRejection = RejectionDetails(
+        documents: rejectionDetails.documents,
+        selfie: rejectionDetails.selfie,
+        generalNotes: rejectionDetails.generalNotes,
+      );
+
+      // Check if all rejections are now cleared
+      final hasAnyErrors =
+          updatedRejection.hasPersonalDetailsErrors ||
+          updatedRejection.hasDocumentErrors ||
+          updatedRejection.hasSelfieErrors;
+
+      // If all errors are cleared, call backend to reset submission
+      if (!hasAnyErrors && currentSubmission.isRejected) {
+        await submissionNotifier.resetSubmission();
+      } else {
+        // Create updated submission with remaining errors
+        final updatedSubmission = Submission(
+          id: currentSubmission.id,
+          userId: currentSubmission.userId,
+          status: currentSubmission.status,
+          submittedAt: currentSubmission.submittedAt,
+          reviewedAt: currentSubmission.reviewedAt,
+          notes: currentSubmission.notes,
+          rejectionDetails: updatedRejection,
+        );
+
+        // Update submission state
+        submissionNotifier.state = submissionNotifier.state.copyWith(
+          submission: updatedSubmission,
+        );
+      }
+    }
   }
 }

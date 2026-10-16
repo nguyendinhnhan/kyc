@@ -73,6 +73,36 @@ class SubmissionRepository {
       return SubmissionResult.error(message: 'An unexpected error occurred');
     }
   }
+
+  Future<SubmissionResult> resetSubmission() async {
+    try {
+      final response = await _apiClient.dio.delete(
+        '/user/submission',
+        data: {},
+      );
+
+      if (response.statusCode == 200) {
+        final submission = Submission.fromJson(response.data['submission']);
+        return SubmissionResult.success(
+          message:
+              response.data['message'] ?? 'Submission resubmitted successfully',
+          submission: submission,
+        );
+      }
+
+      return SubmissionResult.error(
+        message: response.data['error']?.toString() ?? 'Failed to resubmit',
+      );
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final errorMsg = data is Map
+          ? (data['error']?.toString() ?? 'Failed to resubmit')
+          : 'Failed to resubmit';
+      return SubmissionResult.error(message: errorMsg);
+    } catch (e) {
+      return SubmissionResult.error(message: 'An unexpected error occurred');
+    }
+  }
 }
 
 class SubmissionResult {
