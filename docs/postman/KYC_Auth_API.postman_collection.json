@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "KYC Backend API",
-    "description": "Collection for testing KYC backend endpoints (Auth, User, Health)",
+    "description": "Collection for testing KYC backend endpoints (Auth, User, Documents, Selfie, Submission, Health)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -480,6 +480,306 @@
               "path": ["user", "personal-details"]
             },
             "description": "Retrieve user's personal details (requires authentication)"
+          }
+        },
+        {
+          "name": "Upload Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Document uploaded:', response.message);",
+                  "}",
+                  "",
+                  "pm.test('Status code is correct', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test('Document uploaded successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('message');",
+                  "    pm.expect(response).to.have.property('document');",
+                  "    pm.expect(response.document).to.have.property('type');",
+                  "    pm.expect(response.document).to.have.property('documentNumber');",
+                  "    pm.expect(response.document).to.have.property('filePath');",
+                  "    pm.expect(response.document.status).to.eql('pending');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "type",
+                  "value": "passport",
+                  "description": "Document type: passport, id_card, drivers_license, or residence_permit",
+                  "type": "text"
+                },
+                {
+                  "key": "documentNumber",
+                  "value": "AB123456",
+                  "description": "Document number",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "description": "Document image file (JPG/PNG)",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "documents"]
+            },
+            "description": "Upload an identity document (requires authentication). Select an image file for the 'file' field."
+          }
+        },
+        {
+          "name": "Get Documents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Documents retrieved:', response.documents.length);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Documents retrieved successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('documents');",
+                  "    pm.expect(response.documents).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "documents"]
+            },
+            "description": "Retrieve user's uploaded documents (requires authentication)"
+          }
+        },
+        {
+          "name": "Upload Selfie",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Selfie uploaded:', response.message);",
+                  "}",
+                  "",
+                  "pm.test('Status code is correct', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test('Selfie uploaded successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('message');",
+                  "    pm.expect(response).to.have.property('selfie');",
+                  "    pm.expect(response.selfie).to.have.property('filePath');",
+                  "    pm.expect(response.selfie.status).to.eql('pending');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "description": "Selfie image file (JPG/PNG)",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/selfie",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "selfie"]
+            },
+            "description": "Upload a selfie image (requires authentication). Select an image file for the 'file' field."
+          }
+        },
+        {
+          "name": "Get Selfie",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.selfie) {",
+                  "        console.log('Selfie retrieved:', response.selfie.status);",
+                  "    } else {",
+                  "        console.log('No selfie found');",
+                  "    }",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Selfie retrieved successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('selfie');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/selfie",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "selfie"]
+            },
+            "description": "Retrieve user's selfie (requires authentication)"
+          }
+        },
+        {
+          "name": "Submit KYC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('KYC submitted:', response.message);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('KYC submitted successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('message');",
+                  "    pm.expect(response).to.have.property('submission');",
+                  "    pm.expect(response.submission.status).to.eql('submitted');",
+                  "    pm.expect(response.submission).to.have.property('submittedAt');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "submit"]
+            },
+            "description": "Submit KYC application for verification. Requires: personal details, at least one document, and selfie (requires authentication)"
+          }
+        },
+        {
+          "name": "Get Submission",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.submission) {",
+                  "        console.log('Submission status:', response.submission.status);",
+                  "    } else {",
+                  "        console.log('No submission found');",
+                  "    }",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Submission retrieved successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('submission');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/submission",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "submission"]
+            },
+            "description": "Retrieve user's KYC submission status (requires authentication)"
           }
         }
       ]
