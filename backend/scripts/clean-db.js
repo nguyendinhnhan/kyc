@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 
 /**
- * Script to clean the database
+ * Script to clean the database and uploaded files
  * Usage: node scripts/clean-db.js
  * 
- * This will delete all data from all collections in the database.
+ * This will delete all data from all collections and remove all uploaded files.
  * Use with caution!
  */
 
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 async function cleanDatabase() {
@@ -44,13 +46,41 @@ async function cleanDatabase() {
     console.log(`   Total documents removed: ${totalDocuments}`);
     
     await mongoose.disconnect();
+    
+    // Clean uploaded files
+    console.log('\n🗑️  Cleaning uploaded files...\n');
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    
+    if (!fs.existsSync(uploadsDir)) {
+      console.log('No uploads directory found.');
+    } else {
+      const files = fs.readdirSync(uploadsDir);
+      let deletedCount = 0;
+      let totalSize = 0;
+      
+      for (const file of files) {
+        const filePath = path.join(uploadsDir, file);
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile()) {
+          totalSize += stats.size;
+          fs.unlinkSync(filePath);
+          deletedCount++;
+        }
+      }
+      
+      console.log(`✅ Uploads cleaned successfully!`);
+      console.log(`   Files deleted: ${deletedCount}`);
+      console.log(`   Space freed: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+    }
+    
     console.log('\n💡 Next steps:');
     console.log('   1. Create admin user: node scripts/create-admin.js admin@kyc.com Admin123!');
     console.log('   2. Register test user via Postman');
     console.log('   3. Test the complete KYC flow');
     
   } catch (error) {
-    console.error('\n❌ Error cleaning database:');
+    console.error('\n❌ Error cleaning:');
     console.error(error.message);
     process.exit(1);
   }

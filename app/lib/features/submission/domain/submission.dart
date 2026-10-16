@@ -184,4 +184,7 @@ class Submission {
   bool get isUnderReview => status == 'under_review';
   bool get isApproved => status == 'approved';
   bool get isRejected => status == 'rejected';
+
+  /// Users can only edit when submission is draft or rejected.
+  bool get isEditable => status == 'draft' || isRejected;
 }

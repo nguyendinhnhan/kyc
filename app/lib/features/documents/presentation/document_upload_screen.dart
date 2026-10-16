@@ -265,6 +265,11 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     final rejectionDetails =
         submissionState.submission?.rejectionDetails?.documents;
 
+    // Check if submission is locked (submitted, under_review, or approved)
+    final isEditable =
+        submissionState.submission == null ||
+        submissionState.submission!.isEditable;
+
     // Check if there are any remaining field-level rejection errors
     final hasRejectionErrors =
         rejectionDetails != null &&
@@ -273,8 +278,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
             (rejectionDetails.imageQuality != null &&
                 !_changedFields.contains('imageQuality')));
 
-    // Disable button when there are still visible errors
-    final isButtonDisabled = state.isLoading || hasRejectionErrors;
+    // Disable button when there are still visible errors or submission is locked
+    final isButtonDisabled =
+        state.isLoading || hasRejectionErrors || !isEditable;
 
     // Pre-fill document number when documents are loaded
     if (!state.isLoading && state.documents.isNotEmpty && !_hasPrefilled) {
@@ -307,33 +313,37 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    RadioGroup<String>(
-                      groupValue: _selectedType,
-                      onChanged: (value) {
-                        final state = ref.read(documentsStateProvider);
-                        setState(() {
-                          _selectedType = value!;
-                        });
-                        _populateFieldsForType(value!, state);
-                      },
-                      child: Column(
-                        children: _documentTypes.map((type) {
-                          return RadioListTile<String>(
-                            title: Row(
-                              children: [
-                                Icon(type['icon'] as IconData),
-                                const SizedBox(width: 12),
-                                Text(type['label'] as String),
-                              ],
-                            ),
-                            value: type['value'] as String,
-                          );
-                        }).toList(),
+                    AbsorbPointer(
+                      absorbing: !isEditable,
+                      child: RadioGroup<String>(
+                        groupValue: _selectedType,
+                        onChanged: (value) {
+                          final state = ref.read(documentsStateProvider);
+                          setState(() {
+                            _selectedType = value!;
+                          });
+                          _populateFieldsForType(value!, state);
+                        },
+                        child: Column(
+                          children: _documentTypes.map((type) {
+                            return RadioListTile<String>(
+                              title: Row(
+                                children: [
+                                  Icon(type['icon'] as IconData),
+                                  const SizedBox(width: 12),
+                                  Text(type['label'] as String),
+                                ],
+                              ),
+                              value: type['value'] as String,
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: _documentNumberController,
+                      enabled: isEditable,
                       decoration: InputDecoration(
                         labelText: 'Document Number',
                         hintText: 'Enter document number',
@@ -363,7 +373,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                     ),
                     const SizedBox(height: 12),
                     GestureDetector(
-                      onTap: _showImageSourceDialog,
+                      onTap: isEditable ? _showImageSourceDialog : null,
                       child: Container(
                         height: 200,
                         decoration: BoxDecoration(

@@ -176,6 +176,11 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
     final rejectionDetails =
         submissionState.submission?.rejectionDetails?.selfie;
 
+    // Check if submission is locked (submitted, under_review, or approved)
+    final isEditable =
+        submissionState.submission == null ||
+        submissionState.submission!.isEditable;
+
     // Check if there are any remaining field-level rejection errors
     final hasRejectionErrors =
         rejectionDetails != null &&
@@ -184,8 +189,9 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
             (rejectionDetails.faceMatch != null &&
                 !_changedFields.contains('faceMatch')));
 
-    // Disable upload button when there are still visible errors
-    final isUploadDisabled = state.isLoading || hasRejectionErrors;
+    // Disable upload button when there are still visible errors or submission is locked
+    final isUploadDisabled =
+        state.isLoading || hasRejectionErrors || !isEditable;
 
     return Scaffold(
       appBar: AppBar(
@@ -237,7 +243,7 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                   ),
                   const SizedBox(height: 12),
                   GestureDetector(
-                    onTap: _showImageSourceDialog,
+                    onTap: isEditable ? _showImageSourceDialog : null,
                     child: Container(
                       height: 300,
                       decoration: BoxDecoration(
@@ -357,7 +363,9 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                   ],
                   const SizedBox(height: 32),
                   ElevatedButton.icon(
-                    onPressed: state.isLoading ? null : _showImageSourceDialog,
+                    onPressed: state.isLoading || !isEditable
+                        ? null
+                        : _showImageSourceDialog,
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Take Selfie'),
                     style: ElevatedButton.styleFrom(

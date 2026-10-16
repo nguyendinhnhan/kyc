@@ -201,6 +201,11 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
     final rejectionDetails =
         submissionState.submission?.rejectionDetails?.personalDetails;
 
+    // Check if submission is locked (submitted, under_review, or approved)
+    final isEditable =
+        submissionState.submission == null ||
+        submissionState.submission!.isEditable;
+
     // Check if there are any remaining field-level rejection errors
     // (excluding fields the user has already changed)
     final hasRejectionErrors =
@@ -214,8 +219,9 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
             (rejectionDetails.address != null &&
                 !_changedFields.contains('address')));
 
-    // Disable button when there are still visible errors
-    final isButtonDisabled = state.isLoading || hasRejectionErrors;
+    // Disable button when there are still visible errors or submission is locked
+    final isButtonDisabled =
+        state.isLoading || hasRejectionErrors || !isEditable;
 
     // Populate fields when details are loaded
     if (state.details != null && _dateOfBirthController.text.isEmpty) {
@@ -250,6 +256,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                     TextFormField(
                       controller: _dateOfBirthController,
                       readOnly: true,
+                      enabled: isEditable,
                       decoration: InputDecoration(
                         labelText: 'Date of Birth',
                         hintText: 'YYYY-MM-DD',
@@ -260,7 +267,9 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                             : rejectionDetails?.dateOfBirth,
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.calendar_today),
-                          onPressed: () => _selectDate(context),
+                          onPressed: isEditable
+                              ? () => _selectDate(context)
+                              : null,
                         ),
                       ),
                       validator: (value) {
@@ -274,6 +283,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                     TextFormField(
                       controller: _nationalityController,
                       textCapitalization: TextCapitalization.words,
+                      enabled: isEditable,
                       decoration: InputDecoration(
                         labelText: 'Nationality',
                         prefixIcon: const Icon(Icons.flag),
@@ -296,6 +306,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
+                      enabled: isEditable,
                       decoration: InputDecoration(
                         labelText: 'Phone Number',
                         hintText: '+1234567890',
@@ -328,6 +339,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                     TextFormField(
                       controller: _streetController,
                       textCapitalization: TextCapitalization.sentences,
+                      enabled: isEditable,
                       decoration: InputDecoration(
                         labelText: 'Street Address',
                         prefixIcon: const Icon(Icons.home),
@@ -353,6 +365,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                           child: TextFormField(
                             controller: _cityController,
                             textCapitalization: TextCapitalization.words,
+                            enabled: isEditable,
                             decoration: const InputDecoration(
                               labelText: 'City',
                               border: OutlineInputBorder(),
@@ -373,6 +386,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                           child: TextFormField(
                             controller: _stateController,
                             textCapitalization: TextCapitalization.words,
+                            enabled: isEditable,
                             decoration: const InputDecoration(
                               labelText: 'State/Province',
                               border: OutlineInputBorder(),
@@ -396,6 +410,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _postalCodeController,
+                            enabled: isEditable,
                             decoration: const InputDecoration(
                               labelText: 'Postal Code',
                               border: OutlineInputBorder(),
@@ -416,6 +431,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                           child: TextFormField(
                             controller: _countryController,
                             textCapitalization: TextCapitalization.words,
+                            enabled: isEditable,
                             decoration: const InputDecoration(
                               labelText: 'Country',
                               border: OutlineInputBorder(),
