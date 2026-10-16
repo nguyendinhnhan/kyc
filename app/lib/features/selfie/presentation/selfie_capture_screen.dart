@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../../../core/widgets/authenticated_image.dart';
 import 'selfie_state.dart';
 
 class SelfieCaptureScreen extends ConsumerStatefulWidget {
   const SelfieCaptureScreen({super.key});
 
   @override
-  ConsumerState<SelfieCaptureScreen> createState() => _SelfieCaptureScreenState();
+  ConsumerState<SelfieCaptureScreen> createState() =>
+      _SelfieCaptureScreenState();
 }
 
 class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
@@ -31,7 +33,8 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
         maxWidth: 1800,
         maxHeight: 1800,
         imageQuality: 85,
-        preferredCameraDevice: CameraDevice.front, // Use front camera for selfie
+        preferredCameraDevice:
+            CameraDevice.front, // Use front camera for selfie
       );
 
       if (pickedFile != null) {
@@ -100,9 +103,7 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
     }
 
     final notifier = ref.read(selfieStateProvider.notifier);
-    final success = await notifier.uploadSelfie(
-      file: _selectedImage!,
-    );
+    final success = await notifier.uploadSelfie(file: _selectedImage!);
 
     if (!mounted) return;
 
@@ -175,10 +176,7 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                   const SizedBox(height: 24),
                   const Text(
                     'Your Selfie',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   GestureDetector(
@@ -191,32 +189,40 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                         color: Colors.grey[100],
                       ),
                       child: _selectedImage == null
-                          ? Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.face,
-                                  size: 80,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Tap to capture selfie',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Front camera recommended',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                              ],
-                            )
+                          ? (state.selfie != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: const AuthenticatedImage(
+                                      path: '/user/selfie/image',
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.face,
+                                        size: 80,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Tap to capture selfie',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Front camera recommended',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[500],
+                                        ),
+                                      ),
+                                    ],
+                                  ))
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.file(

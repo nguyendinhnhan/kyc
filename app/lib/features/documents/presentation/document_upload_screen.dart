@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../../../core/widgets/authenticated_image.dart';
 import 'documents_state.dart';
 
 class DocumentUploadScreen extends ConsumerStatefulWidget {
   const DocumentUploadScreen({super.key});
 
   @override
-  ConsumerState<DocumentUploadScreen> createState() => _DocumentUploadScreenState();
+  ConsumerState<DocumentUploadScreen> createState() =>
+      _DocumentUploadScreenState();
 }
 
 class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
@@ -18,12 +20,21 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   String _selectedType = 'passport';
   File? _selectedImage;
   final _picker = ImagePicker();
+  bool _hasPrefilled = false;
 
   final _documentTypes = [
     {'value': 'passport', 'label': 'Passport', 'icon': Icons.book},
     {'value': 'id_card', 'label': 'ID Card', 'icon': Icons.badge},
-    {'value': 'drivers_license', 'label': "Driver's License", 'icon': Icons.drive_eta},
-    {'value': 'residence_permit', 'label': 'Residence Permit', 'icon': Icons.home},
+    {
+      'value': 'drivers_license',
+      'label': "Driver's License",
+      'icon': Icons.drive_eta,
+    },
+    {
+      'value': 'residence_permit',
+      'label': 'Residence Permit',
+      'icon': Icons.home,
+    },
   ];
 
   @override
@@ -145,9 +156,48 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     }
   }
 
+  void _populateFieldsForType(String type, DocumentsState state) {
+    final existingDoc = state.documents.where((d) => d.type == type);
+    if (existingDoc.isNotEmpty) {
+      _documentNumberController.text = existingDoc.first.documentNumber;
+    } else {
+      _documentNumberController.clear();
+    }
+  }
+
+  Widget _buildExistingDocumentImage(DocumentsState state) {
+    final existingDoc = state.documents.where((d) => d.type == _selectedType);
+    if (existingDoc.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: AuthenticatedImage(
+          path: '/user/documents/${existingDoc.first.id}/image',
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_photo_alternate, size: 64, color: Colors.grey[400]),
+        const SizedBox(height: 16),
+        Text(
+          'Tap to select image',
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(documentsStateProvider);
+
+    // Pre-fill document number when documents are loaded
+    if (!state.isLoading && state.documents.isNotEmpty && !_hasPrefilled) {
+      _hasPrefilled = true;
+      _populateFieldsForType(_selectedType, state);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -177,9 +227,11 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                     RadioGroup<String>(
                       groupValue: _selectedType,
                       onChanged: (value) {
+                        final state = ref.read(documentsStateProvider);
                         setState(() {
                           _selectedType = value!;
                         });
+                        _populateFieldsForType(value!, state);
                       },
                       child: Column(
                         children: _documentTypes.map((type) {
@@ -234,24 +286,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                           color: Colors.grey[100],
                         ),
                         child: _selectedImage == null
-                            ? Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.add_photo_alternate,
-                                    size: 64,
-                                    color: Colors.grey[400],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Tap to select image',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              )
+                            ? _buildExistingDocumentImage(state)
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.file(

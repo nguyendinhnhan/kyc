@@ -89,3 +89,30 @@ export async function getSelfieHandler(
     return reply.status(500).send({ error: 'Failed to retrieve selfie' });
   }
 }
+
+export async function getSelfieImageHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  try {
+    const userId = (request as any).user.userId;
+
+    const selfie = await SelfieModel.findOne({ userId });
+
+    if (!selfie) {
+      return reply.status(404).send({ error: 'Selfie not found' });
+    }
+
+    if (!fs.existsSync(selfie.filePath)) {
+      return reply.status(404).send({ error: 'Image file not found' });
+    }
+
+    const imageBuffer = fs.readFileSync(selfie.filePath);
+    reply.header('Content-Type', selfie.mimeType);
+    reply.header('Content-Length', imageBuffer.length);
+    return reply.status(200).send(imageBuffer);
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({ error: 'Failed to retrieve selfie image' });
+  }
+}

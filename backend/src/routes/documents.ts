@@ -110,7 +110,36 @@ export async function getDocumentsHandler(
   }
 }
 
+export async function getDocumentImageHandler(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  try {
+    const userId = (request as any).user.userId;
+    const { id } = request.params as { id: string };
+
+    const document = await DocumentModel.findOne({ _id: id, userId });
+
+    if (!document) {
+      return reply.status(404).send({ error: 'Document not found' });
+    }
+
+    if (!fs.existsSync(document.filePath)) {
+      return reply.status(404).send({ error: 'Image file not found' });
+    }
+
+    const imageBuffer = fs.readFileSync(document.filePath);
+    reply.header('Content-Type', document.mimeType);
+    reply.header('Content-Length', imageBuffer.length);
+    return reply.status(200).send(imageBuffer);
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({ error: 'Failed to retrieve document image' });
+  }
+}
+
 export default async function documentRoutes(fastify: FastifyInstance) {
   fastify.post('/documents', uploadDocumentHandler);
   fastify.get('/documents', getDocumentsHandler);
+  fastify.get('/documents/:id/image', getDocumentImageHandler);
 }

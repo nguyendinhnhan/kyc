@@ -147,6 +147,22 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   });
 
+  app.get('/user/selfie/image', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { getSelfieImageHandler } = await import('./routes/selfie');
+      return getSelfieImageHandler(request, reply);
+    },
+  });
+
+  app.get('/user/documents/:id/image', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { getDocumentImageHandler } = await import('./routes/documents');
+      return getDocumentImageHandler(request, reply);
+    },
+  });
+
   // Submission routes (protected)
   app.post('/user/submit', {
     preHandler: authenticate,
