@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../submission/presentation/submission_state.dart';
+import '../../submission/domain/submission.dart';
 import '../domain/personal_details.dart';
 import 'personal_details_state.dart';
 
@@ -23,10 +24,33 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
   final _stateController = TextEditingController();
   final _postalCodeController = TextEditingController();
   final _countryController = TextEditingController();
+  bool _isPopulating = false;
+  // Track which fields the user has actually edited
+  final Set<String> _changedFields = {};
 
   @override
   void initState() {
     super.initState();
+    // Listen for changes - only mark if not during population
+    void onFieldChange(String fieldName) {
+      if (!_isPopulating) {
+        setState(() {
+          _changedFields.add(fieldName);
+        });
+        // Clear this field's rejection error immediately
+        _clearFieldRejection(fieldName);
+      }
+    }
+
+    _dateOfBirthController.addListener(() => onFieldChange('dateOfBirth'));
+    _nationalityController.addListener(() => onFieldChange('nationality'));
+    _phoneController.addListener(() => onFieldChange('phone'));
+    _streetController.addListener(() => onFieldChange('address'));
+    _cityController.addListener(() => onFieldChange('address'));
+    _stateController.addListener(() => onFieldChange('address'));
+    _postalCodeController.addListener(() => onFieldChange('address'));
+    _countryController.addListener(() => onFieldChange('address'));
+
     // Load existing personal details if any
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(personalDetailsStateProvider.notifier).loadPersonalDetails();
@@ -47,6 +71,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
   }
 
   void _populateFields(PersonalDetails details) {
+    _isPopulating = true;
     _dateOfBirthController.text = details.dateOfBirth.split('T')[0];
     _nationalityController.text = details.nationality;
     _phoneController.text = details.phone;
@@ -55,6 +80,68 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
     _stateController.text = details.address.state;
     _postalCodeController.text = details.address.postalCode;
     _countryController.text = details.address.country;
+    _isPopulating = false;
+  }
+
+  void _clearFieldRejection(String fieldName) {
+    final submissionState = ref.read(submissionStateProvider);
+    final currentSubmission = submissionState.submission;
+
+    if (currentSubmission?.rejectionDetails?.personalDetails == null) return;
+
+    final currentRejection =
+        currentSubmission!.rejectionDetails!.personalDetails!;
+
+    // Build updated personal details rejection without the changed field
+    final updatedPersonalRejection = PersonalDetailsRejection(
+      dateOfBirth: fieldName == 'dateOfBirth'
+          ? null
+          : currentRejection.dateOfBirth,
+      nationality: fieldName == 'nationality'
+          ? null
+          : currentRejection.nationality,
+      phone: fieldName == 'phone' ? null : currentRejection.phone,
+      address: fieldName == 'address' ? null : currentRejection.address,
+    );
+
+    // Check if any personal details errors remain
+    final hasPersonalErrors =
+        updatedPersonalRejection.dateOfBirth != null ||
+        updatedPersonalRejection.nationality != null ||
+        updatedPersonalRejection.phone != null ||
+        updatedPersonalRejection.address != null;
+
+    final otherRejections = currentSubmission.rejectionDetails!;
+    final updatedRejectionDetails = RejectionDetails(
+      personalDetails: hasPersonalErrors ? updatedPersonalRejection : null,
+      documents: otherRejections.documents,
+      selfie: otherRejections.selfie,
+      generalNotes: otherRejections.generalNotes,
+    );
+
+    final hasAnyErrors =
+        updatedRejectionDetails.hasPersonalDetailsErrors ||
+        updatedRejectionDetails.hasDocumentErrors ||
+        updatedRejectionDetails.hasSelfieErrors;
+
+    final submissionNotifier = ref.read(submissionStateProvider.notifier);
+
+    if (!hasAnyErrors && currentSubmission.isRejected) {
+      // All errors cleared - reset submission via backend
+      submissionNotifier.resetSubmission();
+    } else {
+      final updatedSubmission = Submission(
+        id: currentSubmission.id,
+        userId: currentSubmission.userId,
+        status: currentSubmission.status,
+        submittedAt: currentSubmission.submittedAt,
+        reviewedAt: currentSubmission.reviewedAt,
+        notes: currentSubmission.notes,
+        rejectionDetails: hasAnyErrors ? updatedRejectionDetails : null,
+      );
+
+      submissionNotifier.updateSubmission(updatedSubmission);
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -118,6 +205,22 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
     final rejectionDetails =
         submissionState.submission?.rejectionDetails?.personalDetails;
 
+    // Check if there are any remaining field-level rejection errors
+    // (excluding fields the user has already changed)
+    final hasRejectionErrors =
+        rejectionDetails != null &&
+        ((rejectionDetails.dateOfBirth != null &&
+                !_changedFields.contains('dateOfBirth')) ||
+            (rejectionDetails.nationality != null &&
+                !_changedFields.contains('nationality')) ||
+            (rejectionDetails.phone != null &&
+                !_changedFields.contains('phone')) ||
+            (rejectionDetails.address != null &&
+                !_changedFields.contains('address')));
+
+    // Disable button when there are still visible errors
+    final isButtonDisabled = state.isLoading || hasRejectionErrors;
+
     // Populate fields when details are loaded
     if (state.details != null && _dateOfBirthController.text.isEmpty) {
       _populateFields(state.details!);
@@ -156,7 +259,9 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                         hintText: 'YYYY-MM-DD',
                         prefixIcon: const Icon(Icons.calendar_today),
                         border: const OutlineInputBorder(),
-                        errorText: rejectionDetails?.dateOfBirth,
+                        errorText: _changedFields.contains('dateOfBirth')
+                            ? null
+                            : rejectionDetails?.dateOfBirth,
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.calendar_today),
                           onPressed: () => _selectDate(context),
@@ -177,7 +282,9 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                         labelText: 'Nationality',
                         prefixIcon: const Icon(Icons.flag),
                         border: const OutlineInputBorder(),
-                        errorText: rejectionDetails?.nationality,
+                        errorText: _changedFields.contains('nationality')
+                            ? null
+                            : rejectionDetails?.nationality,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -198,7 +305,9 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                         hintText: '+1234567890',
                         prefixIcon: const Icon(Icons.phone),
                         border: const OutlineInputBorder(),
-                        errorText: rejectionDetails?.phone,
+                        errorText: _changedFields.contains('phone')
+                            ? null
+                            : rejectionDetails?.phone,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -227,7 +336,9 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                         labelText: 'Street Address',
                         prefixIcon: const Icon(Icons.home),
                         border: const OutlineInputBorder(),
-                        errorText: rejectionDetails?.address,
+                        errorText: _changedFields.contains('address')
+                            ? null
+                            : rejectionDetails?.address,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -327,8 +438,35 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                       ],
                     ),
                     const SizedBox(height: 32),
+                    if (hasRejectionErrors) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.orange[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Please fix the errors above before updating',
+                                style: TextStyle(color: Colors.orange[900]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     ElevatedButton(
-                      onPressed: state.isLoading ? null : _handleSave,
+                      onPressed: isButtonDisabled ? null : _handleSave,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.all(16),
                         textStyle: const TextStyle(fontSize: 16),

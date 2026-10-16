@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/widgets/authenticated_image.dart';
 import '../../submission/presentation/submission_state.dart';
+import '../../submission/domain/submission.dart';
 import 'selfie_state.dart';
 
 class SelfieCaptureScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,8 @@ class SelfieCaptureScreen extends ConsumerStatefulWidget {
 class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
   File? _selectedImage;
   final _picker = ImagePicker();
+  // Track which fields the user has actually edited
+  final Set<String> _changedFields = {};
 
   @override
   void initState() {
@@ -41,7 +44,10 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
+          _changedFields.add('imageQuality');
+          _changedFields.add('faceMatch');
         });
+        _clearSelfieFieldRejection();
       }
     } catch (e) {
       if (mounted) {
@@ -127,12 +133,61 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
     }
   }
 
+  void _clearSelfieFieldRejection() {
+    final submissionState = ref.read(submissionStateProvider);
+    final currentSubmission = submissionState.submission;
+
+    if (currentSubmission?.rejectionDetails?.selfie == null) return;
+
+    // When user captures a new selfie, clear all selfie rejection errors
+    final otherRejections = currentSubmission!.rejectionDetails!;
+    final updatedRejectionDetails = RejectionDetails(
+      personalDetails: otherRejections.personalDetails,
+      documents: otherRejections.documents,
+      selfie: null, // Clear all selfie errors
+      generalNotes: otherRejections.generalNotes,
+    );
+
+    final hasAnyErrors =
+        updatedRejectionDetails.hasPersonalDetailsErrors ||
+        updatedRejectionDetails.hasDocumentErrors ||
+        updatedRejectionDetails.hasSelfieErrors;
+
+    final submissionNotifier = ref.read(submissionStateProvider.notifier);
+
+    if (!hasAnyErrors && currentSubmission.isRejected) {
+      submissionNotifier.resetSubmission();
+    } else {
+      final updatedSubmission = Submission(
+        id: currentSubmission.id,
+        userId: currentSubmission.userId,
+        status: currentSubmission.status,
+        submittedAt: currentSubmission.submittedAt,
+        reviewedAt: currentSubmission.reviewedAt,
+        notes: currentSubmission.notes,
+        rejectionDetails: hasAnyErrors ? updatedRejectionDetails : null,
+      );
+      submissionNotifier.updateSubmission(updatedSubmission);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(selfieStateProvider);
     final submissionState = ref.watch(submissionStateProvider);
     final rejectionDetails =
         submissionState.submission?.rejectionDetails?.selfie;
+
+    // Check if there are any remaining field-level rejection errors
+    final hasRejectionErrors =
+        rejectionDetails != null &&
+        ((rejectionDetails.imageQuality != null &&
+                !_changedFields.contains('imageQuality')) ||
+            (rejectionDetails.faceMatch != null &&
+                !_changedFields.contains('faceMatch')));
+
+    // Disable upload button when there are still visible errors
+    final isUploadDisabled = state.isLoading || hasRejectionErrors;
 
     return Scaffold(
       appBar: AppBar(
@@ -190,8 +245,12 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                       decoration: BoxDecoration(
                         border: Border.all(
                           color:
-                              (rejectionDetails?.imageQuality != null ||
-                                  rejectionDetails?.faceMatch != null)
+                              ((rejectionDetails?.imageQuality != null &&
+                                      !_changedFields.contains(
+                                        'imageQuality',
+                                      )) ||
+                                  (rejectionDetails?.faceMatch != null &&
+                                      !_changedFields.contains('faceMatch')))
                               ? Colors.red
                               : Colors.grey,
                         ),
@@ -242,7 +301,8 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                             ),
                     ),
                   ),
-                  if (rejectionDetails?.imageQuality != null) ...[
+                  if (rejectionDetails?.imageQuality != null &&
+                      !_changedFields.contains('imageQuality')) ...[
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -269,7 +329,8 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                       ),
                     ),
                   ],
-                  if (rejectionDetails?.faceMatch != null) ...[
+                  if (rejectionDetails?.faceMatch != null &&
+                      !_changedFields.contains('faceMatch')) ...[
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -307,8 +368,35 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  if (hasRejectionErrors) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.orange[700],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Please capture a new selfie to fix the errors above',
+                              style: TextStyle(color: Colors.orange[900]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   ElevatedButton(
-                    onPressed: state.isLoading ? null : _handleUpload,
+                    onPressed: isUploadDisabled ? null : _handleUpload,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
                       textStyle: const TextStyle(fontSize: 16),

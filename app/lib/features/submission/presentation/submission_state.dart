@@ -77,6 +77,14 @@ class SubmissionNotifier extends StateNotifier<SubmissionState> {
     state = state.copyWith(clearError: true);
   }
 
+  /// Update the submission locally (e.g., to clear rejection fields after user edits).
+  void updateSubmission(Submission submission) {
+    state = state.copyWith(
+      submission: submission,
+      isSubmitted: submission.isSubmitted,
+    );
+  }
+
   Future<void> resetSubmission() async {
     state = state.copyWith(isLoading: true, clearError: true);
 

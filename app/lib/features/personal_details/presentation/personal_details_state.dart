@@ -145,9 +145,7 @@ class PersonalDetailsNotifier extends StateNotifier<PersonalDetailsState> {
         );
 
         // Update submission state
-        submissionNotifier.state = submissionNotifier.state.copyWith(
-          submission: updatedSubmission,
-        );
+        submissionNotifier.updateSubmission(updatedSubmission);
       }
     }
   }

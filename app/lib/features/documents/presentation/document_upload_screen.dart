@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/widgets/authenticated_image.dart';
 import '../../submission/presentation/submission_state.dart';
+import '../../submission/domain/submission.dart';
 import 'documents_state.dart';
 
 class DocumentUploadScreen extends ConsumerStatefulWidget {
@@ -22,6 +23,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   File? _selectedImage;
   final _picker = ImagePicker();
   bool _hasPrefilled = false;
+  // Track which fields the user has actually edited
+  final Set<String> _changedFields = {};
+  bool _isPopulating = false;
 
   final _documentTypes = [
     {'value': 'passport', 'label': 'Passport', 'icon': Icons.book},
@@ -41,6 +45,14 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   @override
   void initState() {
     super.initState();
+    _documentNumberController.addListener(() {
+      if (!_isPopulating) {
+        setState(() {
+          _changedFields.add('documentNumber');
+        });
+        _clearDocumentFieldRejection('documentNumber');
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(documentsStateProvider.notifier).loadDocuments();
     });
@@ -64,7 +76,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
+          _changedFields.add('imageQuality');
         });
+        _clearDocumentFieldRejection('imageQuality');
       }
     } catch (e) {
       if (mounted) {
@@ -158,11 +172,67 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   }
 
   void _populateFieldsForType(String type, DocumentsState state) {
+    _isPopulating = true;
     final existingDoc = state.documents.where((d) => d.type == type);
     if (existingDoc.isNotEmpty) {
       _documentNumberController.text = existingDoc.first.documentNumber;
     } else {
       _documentNumberController.clear();
+    }
+    _isPopulating = false;
+  }
+
+  void _clearDocumentFieldRejection(String fieldName) {
+    final submissionState = ref.read(submissionStateProvider);
+    final currentSubmission = submissionState.submission;
+
+    if (currentSubmission?.rejectionDetails?.documents == null) return;
+
+    final currentRejection = currentSubmission!.rejectionDetails!.documents!;
+
+    final updatedDocRejection = DocumentRejection(
+      imageQuality: fieldName == 'imageQuality'
+          ? null
+          : currentRejection.imageQuality,
+      documentNumber: fieldName == 'documentNumber'
+          ? null
+          : currentRejection.documentNumber,
+      expirationDate: currentRejection.expirationDate,
+    );
+
+    final hasDocErrors =
+        updatedDocRejection.imageQuality != null ||
+        updatedDocRejection.documentNumber != null ||
+        updatedDocRejection.expirationDate != null;
+
+    final otherRejections = currentSubmission.rejectionDetails!;
+    final updatedRejectionDetails = RejectionDetails(
+      personalDetails: otherRejections.personalDetails,
+      documents: hasDocErrors ? updatedDocRejection : null,
+      selfie: otherRejections.selfie,
+      generalNotes: otherRejections.generalNotes,
+    );
+
+    final hasAnyErrors =
+        updatedRejectionDetails.hasPersonalDetailsErrors ||
+        updatedRejectionDetails.hasDocumentErrors ||
+        updatedRejectionDetails.hasSelfieErrors;
+
+    final submissionNotifier = ref.read(submissionStateProvider.notifier);
+
+    if (!hasAnyErrors && currentSubmission.isRejected) {
+      submissionNotifier.resetSubmission();
+    } else {
+      final updatedSubmission = Submission(
+        id: currentSubmission.id,
+        userId: currentSubmission.userId,
+        status: currentSubmission.status,
+        submittedAt: currentSubmission.submittedAt,
+        reviewedAt: currentSubmission.reviewedAt,
+        notes: currentSubmission.notes,
+        rejectionDetails: hasAnyErrors ? updatedRejectionDetails : null,
+      );
+      submissionNotifier.updateSubmission(updatedSubmission);
     }
   }
 
@@ -196,6 +266,17 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     final submissionState = ref.watch(submissionStateProvider);
     final rejectionDetails =
         submissionState.submission?.rejectionDetails?.documents;
+
+    // Check if there are any remaining field-level rejection errors
+    final hasRejectionErrors =
+        rejectionDetails != null &&
+        ((rejectionDetails.documentNumber != null &&
+                !_changedFields.contains('documentNumber')) ||
+            (rejectionDetails.imageQuality != null &&
+                !_changedFields.contains('imageQuality')));
+
+    // Disable button when there are still visible errors
+    final isButtonDisabled = state.isLoading || hasRejectionErrors;
 
     // Pre-fill document number when documents are loaded
     if (!state.isLoading && state.documents.isNotEmpty && !_hasPrefilled) {
@@ -260,7 +341,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                         hintText: 'Enter document number',
                         prefixIcon: const Icon(Icons.numbers),
                         border: const OutlineInputBorder(),
-                        errorText: rejectionDetails?.documentNumber,
+                        errorText: _changedFields.contains('documentNumber')
+                            ? null
+                            : rejectionDetails?.documentNumber,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -287,7 +370,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                         height: 200,
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: rejectionDetails?.imageQuality != null
+                            color:
+                                (rejectionDetails?.imageQuality != null &&
+                                    !_changedFields.contains('imageQuality'))
                                 ? Colors.red
                                 : Colors.grey,
                           ),
@@ -305,7 +390,8 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                               ),
                       ),
                     ),
-                    if (rejectionDetails?.imageQuality != null) ...[
+                    if (rejectionDetails?.imageQuality != null &&
+                        !_changedFields.contains('imageQuality')) ...[
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -333,8 +419,35 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                       ),
                     ],
                     const SizedBox(height: 32),
+                    if (hasRejectionErrors) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.orange[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Please fix the errors above before uploading',
+                                style: TextStyle(color: Colors.orange[900]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     ElevatedButton(
-                      onPressed: state.isLoading ? null : _handleUpload,
+                      onPressed: isButtonDisabled ? null : _handleUpload,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.all(16),
                         textStyle: const TextStyle(fontSize: 16),
