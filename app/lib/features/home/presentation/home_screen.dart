@@ -151,7 +151,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Column(
                   children: [
                     InkWell(
-                      onTap: () => context.go('/personal-details'),
+                      onTap: () => context.push('/personal-details'),
                       child: _buildStatusRow(
                         'Personal Details',
                         personalDetailsState.isSaved,
@@ -161,7 +161,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const Divider(height: 32),
                     InkWell(
-                      onTap: () => context.go('/document-upload'),
+                      onTap: () => context.push('/document-upload'),
                       child: _buildStatusRow(
                         'Document Upload',
                         documentsState.isUploaded,
@@ -171,7 +171,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const Divider(height: 32),
                     InkWell(
-                      onTap: () => context.go('/selfie-capture'),
+                      onTap: () => context.push('/selfie-capture'),
                       child: _buildStatusRow(
                         'Selfie Capture',
                         selfieState.isUploaded,
@@ -181,7 +181,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const Divider(height: 32),
                     InkWell(
-                      onTap: () => context.go('/review-submit'),
+                      onTap: () => context.push('/review-submit'),
                       child: Row(
                         children: [
                           Icon(statusIcon, color: statusColor, size: 32),
@@ -207,7 +207,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                context.go('/review-submit');
+                context.push('/review-submit');
               },
               icon: Icon(buttonIcon),
               label: Text(buttonLabel),

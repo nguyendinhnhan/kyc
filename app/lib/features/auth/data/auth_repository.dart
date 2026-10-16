@@ -24,11 +24,7 @@ class AuthRepository {
     try {
       final response = await _apiClient.dio.post(
         '/auth/register',
-        data: {
-          'email': email,
-          'password': password,
-          'fullName': fullName,
-        },
+        data: {'email': email, 'password': password, 'fullName': fullName},
       );
 
       if (response.statusCode == 201) {
@@ -59,10 +55,7 @@ class AuthRepository {
     try {
       final response = await _apiClient.dio.post(
         '/auth/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
 
       if (response.statusCode == 200) {
@@ -140,24 +133,13 @@ class AuthResult {
   final String message;
   final User? user;
 
-  AuthResult._({
-    required this.isSuccess,
-    required this.message,
-    this.user,
-  });
+  AuthResult._({required this.isSuccess, required this.message, this.user});
 
   factory AuthResult.success({required String message, User? user}) {
-    return AuthResult._(
-      isSuccess: true,
-      message: message,
-      user: user,
-    );
+    return AuthResult._(isSuccess: true, message: message, user: user);
   }
 
   factory AuthResult.error({required String message}) {
-    return AuthResult._(
-      isSuccess: false,
-      message: message,
-    );
+    return AuthResult._(isSuccess: false, message: message);
   }
 }

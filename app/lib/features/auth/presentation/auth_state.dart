@@ -12,12 +12,14 @@ class AuthState {
   final bool isAuthenticated;
   final User? user;
   final String? errorMessage;
+  final String? successMessage;
 
   AuthState({
     this.isLoading = false,
     this.isAuthenticated = false,
     this.user,
     this.errorMessage,
+    this.successMessage,
   });
 
   AuthState copyWith({
@@ -25,13 +27,18 @@ class AuthState {
     bool? isAuthenticated,
     User? user,
     String? errorMessage,
+    String? successMessage,
     bool clearError = false,
+    bool clearSuccess = false,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       user: user ?? this.user,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
     );
   }
 }
@@ -46,16 +53,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isAuthenticated: isAuthenticated);
   }
 
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
-    final result = await _repository.login(
-      email: email,
-      password: password,
-    );
+    final result = await _repository.login(email: email, password: password);
 
     if (result.isSuccess) {
       state = state.copyWith(
@@ -65,10 +66,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } else {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: result.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: result.message);
       return false;
     }
   }
@@ -90,13 +88,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(
         isLoading: false,
         errorMessage: null,
+        successMessage: 'Registration successful! Please login.',
       );
       return true;
     } else {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: result.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: result.message);
       return false;
     }
   }
@@ -109,5 +105,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void clearError() {
     state = state.copyWith(clearError: true);
+  }
+
+  void clearSuccessMessage() {
+    state = state.copyWith(clearSuccess: true);
   }
 }

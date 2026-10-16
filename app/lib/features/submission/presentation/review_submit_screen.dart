@@ -703,7 +703,7 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
               ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => context.go('/personal-details'),
+              onPressed: () => context.push('/personal-details'),
               child: const Text('Edit'),
             ),
           ],
@@ -764,7 +764,7 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
               ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => context.go('/document-upload'),
+              onPressed: () => context.push('/document-upload'),
               child: const Text('Edit'),
             ),
           ],
@@ -811,7 +811,7 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
               ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => context.go('/selfie-capture'),
+              onPressed: () => context.push('/selfie-capture'),
               child: const Text('Edit'),
             ),
           ],
