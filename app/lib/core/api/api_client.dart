@@ -48,6 +48,12 @@ class ApiClient {
         },
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
+            // Don't retry multipart requests — file streams can't be re-read
+            final isMultipart = error.requestOptions.data is FormData;
+            if (isMultipart) {
+              return handler.next(error);
+            }
+
             // Token expired or invalid - try to refresh
             final refreshed = await _refreshToken();
             if (refreshed) {

@@ -139,25 +139,30 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
                       ),
                     ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: allRequirementsMet && !submissionState.isLoading
-                        ? _showConfirmationDialog
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(16),
-                      textStyle: const TextStyle(fontSize: 16),
-                      backgroundColor: Colors.green,
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed:
+                          allRequirementsMet && !submissionState.isLoading
+                          ? _showConfirmationDialog
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                        textStyle: const TextStyle(fontSize: 16),
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: submissionState.isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Submit KYC Application'),
                     ),
-                    child: submissionState.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Submit KYC Application'),
                   ),
                 ],
               ),
