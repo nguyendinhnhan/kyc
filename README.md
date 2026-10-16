@@ -202,10 +202,10 @@ AI usage is documented in [docs/ai-usage.md](docs/ai-usage.md), including:
 
 ## API Documentation
 
-API specifications will be available in [contracts/](contracts/) once implemented:
-- OpenAPI/Swagger specification
-- Request/response schemas
-- Authentication flows
+API specifications are available in [contracts/](contracts/):
+- Request/response schemas for all endpoints
+- Authentication flows (register, login, refresh, logout)
+- Admin API (list, approve, reject submissions)
 - Error codes and messages
 
 ## Status
@@ -222,6 +222,19 @@ API specifications will be available in [contracts/](contracts/) once implemente
 - [x] Verification status tracking with rejection/resubmission
 - [x] Sensitive data handling (log redaction, ownership isolation, secure storage)
 - [x] Resume capability for interrupted flows
+
+### Upcoming Features
+- [ ] Pre-signed upload URLs — direct image upload to S3, bypassing the backend for large files
+- [ ] Admin UI — web dashboard for reviewing submissions, approving/rejecting, and viewing stats
+- [ ] Submission history — full audit trail of status changes and admin actions
+- [ ] Token blacklist — server-side refresh token invalidation on logout (Redis-backed)
+- [ ] Field-level encryption for PII in MongoDB
+- [ ] OCR integration for automatic document data extraction
+- [ ] Biometric face matching against ID photo
+- [ ] Push notifications for status changes
+- [ ] Multi-language support (i18n)
+- [ ] Offline mode with sync queue
+- [ ] CI/CD pipeline for automated testing and deployment
 
 ## License
 
