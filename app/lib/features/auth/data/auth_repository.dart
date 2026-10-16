@@ -22,9 +22,6 @@ class AuthRepository {
     required String fullName,
   }) async {
     try {
-      print('🔵 Registering user: $email');
-      print('🔵 API URL: ${_apiClient.dio.options.baseUrl}/auth/register');
-      
       final response = await _apiClient.dio.post(
         '/auth/register',
         data: {
@@ -33,9 +30,6 @@ class AuthRepository {
           'fullName': fullName,
         },
       );
-
-      print('✅ Register response: ${response.statusCode}');
-      print('✅ Response data: ${response.data}');
 
       if (response.statusCode == 201) {
         return AuthResult.success(
@@ -47,8 +41,6 @@ class AuthRepository {
         message: response.data['error'] ?? 'Registration failed',
       );
     } on DioException catch (e) {
-      print('❌ Register DioException: ${e.message}');
-      print('❌ Response: ${e.response?.data}');
       if (e.response?.statusCode == 409) {
         return AuthResult.error(message: 'Email already registered');
       }
@@ -56,7 +48,6 @@ class AuthRepository {
         message: e.response?.data['error'] ?? 'Registration failed',
       );
     } catch (e) {
-      print('❌ Register error: $e');
       return AuthResult.error(message: 'An unexpected error occurred');
     }
   }
@@ -66,9 +57,6 @@ class AuthRepository {
     required String password,
   }) async {
     try {
-      print('🔵 Logging in user: $email');
-      print('🔵 API URL: ${_apiClient.dio.options.baseUrl}/auth/login');
-      
       final response = await _apiClient.dio.post(
         '/auth/login',
         data: {
@@ -76,9 +64,6 @@ class AuthRepository {
           'password': password,
         },
       );
-
-      print('✅ Login response: ${response.statusCode}');
-      print('✅ Response data: ${response.data}');
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -98,8 +83,6 @@ class AuthRepository {
         message: response.data['error'] ?? 'Login failed',
       );
     } on DioException catch (e) {
-      print('❌ Login DioException: ${e.message}');
-      print('❌ Response: ${e.response?.data}');
       if (e.response?.statusCode == 401) {
         return AuthResult.error(message: 'Invalid email or password');
       }
@@ -107,7 +90,6 @@ class AuthRepository {
         message: e.response?.data['error'] ?? 'Login failed',
       );
     } catch (e) {
-      print('❌ Login error: $e');
       return AuthResult.error(message: 'An unexpected error occurred');
     }
   }

@@ -15,7 +15,13 @@ export async function buildApp(): Promise<FastifyInstance> {
     logger: {
       level: config.nodeEnv === 'development' ? 'info' : 'warn',
       redact: {
-        paths: ['req.headers.authorization', 'req.body.password', 'req.body.token'],
+        paths: [
+          'req.headers.authorization',
+          'req.body.password',
+          'req.body.token',
+          'req.body.refreshToken',
+          'req.body.accessToken',
+        ],
         censor: '[REDACTED]',
       },
     },

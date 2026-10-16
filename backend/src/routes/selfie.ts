@@ -83,7 +83,7 @@ export async function getSelfieHandler(
   try {
     const userId = (request as any).user.userId;
 
-    const selfie = await SelfieModel.findOne({ userId });
+    const selfie = await SelfieModel.findOne({ userId }).select('-filePath');
 
     return reply.status(200).send({
       selfie,
@@ -155,6 +155,6 @@ async function clearRejectionField(
       await submission.save();
     }
   } catch (error) {
-    console.error('Error clearing rejection field:', error);
+    // Silently handle - rejection clearing is best-effort
   }
 }

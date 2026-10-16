@@ -10,8 +10,6 @@ export async function registerHandler(
   reply: FastifyReply
 ) {
   try {
-
-    console.log('Registering user:', request.body);
     const { email, password, fullName } = request.body;
 
     // Create new user
@@ -90,7 +88,7 @@ export async function loginHandler(
     const refreshToken = jwt.sign(
       { userId: user._id, email: user.email, role: user.role || 'user', type: 'refresh' },
       config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshExpiresIn }
+      { expiresIn: config.jwt.refreshExpiresIn as string | number }
     );
 
     return reply.status(200).send({
@@ -155,7 +153,7 @@ export async function refreshTokenHandler(
     const newRefreshToken = jwt.sign(
       { userId: user._id, email: user.email, role: user.role || 'user', type: 'refresh' },
       config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshExpiresIn }
+      { expiresIn: config.jwt.refreshExpiresIn as string | number }
     );
 
     return reply.status(200).send({
