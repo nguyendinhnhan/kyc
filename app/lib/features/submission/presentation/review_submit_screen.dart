@@ -453,6 +453,9 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
   }
 
   Widget _buildRejectionDetails(RejectionDetails details) {
+    final submission = ref.watch(submissionStateProvider).submission;
+    final isEditable = submission == null || submission.isEditable;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -470,6 +473,7 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
             'Personal Details',
             Icons.person,
             _getPersonalDetailsErrors(details.personalDetails!),
+            onTap: isEditable ? () => context.push('/personal-details') : null,
           ),
           const SizedBox(height: 12),
         ],
@@ -478,6 +482,7 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
             'Documents',
             Icons.description,
             _getDocumentErrors(details.documents!),
+            onTap: isEditable ? () => context.push('/document-upload') : null,
           ),
           const SizedBox(height: 12),
         ],
@@ -486,6 +491,7 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
             'Selfie',
             Icons.camera_alt,
             _getSelfieErrors(details.selfie!),
+            onTap: isEditable ? () => context.push('/selfie-capture') : null,
           ),
         ],
         if (details.generalNotes != null &&
@@ -520,9 +526,10 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
   Widget _buildRejectionSection(
     String title,
     IconData icon,
-    List<String> errors,
-  ) {
-    return Container(
+    List<String> errors, {
+    VoidCallback? onTap,
+  }) {
+    final child = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.red[50],
@@ -536,13 +543,17 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
             children: [
               Icon(icon, size: 20, color: Colors.red[700]),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.red[900],
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red[900],
+                  ),
                 ),
               ),
+              if (onTap != null)
+                Icon(Icons.chevron_right, size: 20, color: Colors.red[400]),
             ],
           ),
           const SizedBox(height: 8),
@@ -563,9 +574,28 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
               ),
             ),
           ),
+          if (onTap != null) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 28),
+              child: Text(
+                'Tap to fix →',
+                style: TextStyle(
+                  color: Colors.red[500],
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
+
+    if (onTap != null) {
+      return GestureDetector(onTap: onTap, child: child);
+    }
+    return child;
   }
 
   List<String> _getPersonalDetailsErrors(PersonalDetailsRejection details) {
