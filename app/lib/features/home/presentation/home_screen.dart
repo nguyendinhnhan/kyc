@@ -42,6 +42,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final hasDocumentError = rejectionDetails?.hasDocumentErrors ?? false;
     final hasSelfieError = rejectionDetails?.hasSelfieErrors ?? false;
 
+    // Determine verification status label for the card row
+    final submission = submissionState.submission;
+    final String statusLabel;
+    final IconData statusIcon;
+    final Color statusColor;
+
+    if (submission == null || submission.status == 'draft') {
+      statusLabel = 'Not Submitted';
+      statusIcon = Icons.radio_button_unchecked;
+      statusColor = Colors.grey;
+    } else if (submission.isRejected) {
+      statusLabel = 'Rejected';
+      statusIcon = Icons.error;
+      statusColor = Colors.red;
+    } else if (submission.isSubmitted) {
+      statusLabel = 'Submitted';
+      statusIcon = Icons.schedule;
+      statusColor = Colors.blue;
+    } else if (submission.isUnderReview) {
+      statusLabel = 'Under Review';
+      statusIcon = Icons.rate_review;
+      statusColor = Colors.orange;
+    } else if (submission.isApproved) {
+      statusLabel = 'Approved';
+      statusIcon = Icons.check_circle;
+      statusColor = Colors.green;
+    } else {
+      statusLabel = 'Not Submitted';
+      statusIcon = Icons.radio_button_unchecked;
+      statusColor = Colors.grey;
+    }
+
+    // Determine button label based on status
+    final String buttonLabel;
+    final IconData buttonIcon;
+
+    if (submission == null || submission.status == 'draft') {
+      buttonLabel = 'Review & Submit';
+      buttonIcon = Icons.arrow_forward;
+    } else if (submission.isRejected) {
+      final hasFieldErrors =
+          rejectionDetails != null &&
+          (rejectionDetails.hasPersonalDetailsErrors ||
+              rejectionDetails.hasDocumentErrors ||
+              rejectionDetails.hasSelfieErrors);
+      if (hasFieldErrors) {
+        buttonLabel = 'Fix Errors & Resubmit';
+        buttonIcon = Icons.edit;
+      } else {
+        buttonLabel = 'Resubmit Application';
+        buttonIcon = Icons.refresh;
+      }
+    } else if (submission.isApproved) {
+      buttonLabel = 'View Details';
+      buttonIcon = Icons.visibility;
+    } else {
+      buttonLabel = 'View Status';
+      buttonIcon = Icons.info_outline;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('KYC Onboarding'),
@@ -122,10 +182,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const Divider(height: 32),
                     InkWell(
                       onTap: () => context.go('/review-submit'),
-                      child: _buildStatusRow(
-                        'Verification',
-                        submissionState.isSubmitted,
-                        Icons.verified,
+                      child: Row(
+                        children: [
+                          Icon(statusIcon, color: statusColor, size: 32),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              statusLabel,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: statusColor,
+                              ),
+                            ),
+                          ),
+                          Icon(Icons.chevron_right, color: statusColor),
+                        ],
                       ),
                     ),
                   ],
@@ -137,8 +209,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onPressed: () {
                 context.go('/review-submit');
               },
-              icon: const Icon(Icons.arrow_forward),
-              label: const Text('Review & Submit'),
+              icon: Icon(buttonIcon),
+              label: Text(buttonLabel),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
