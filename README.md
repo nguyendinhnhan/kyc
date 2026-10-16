@@ -13,6 +13,10 @@ This project implements a complete KYC onboarding flow:
 - Verification status tracking with rejection/resubmission
 - Resume capability for interrupted flows
 
+### Demo
+
+[Watch demo video](docs/demo.mov)
+
 ## Technology Stack
 
 ### Backend
@@ -135,6 +139,7 @@ All major architectural decisions are documented in [Architecture Decision Recor
 - [ADR-0004](docs/adr/0004-jwt-authentication.md): JWT with refresh token rotation
 - [ADR-0005](docs/adr/0005-riverpod-state-management.md): Riverpod for Flutter state
 - [ADR-0006](docs/adr/0006-image-storage-strategy.md): Local + S3-compatible image storage
+- [ADR-0007](docs/adr/0007-sensitive-data-handling.md): Sensitive data handling (R9)
 
 See [tech-stack-summary.md](docs/tech-stack-summary.md) for a complete overview.
 
@@ -147,9 +152,9 @@ See [tech-stack-summary.md](docs/tech-stack-summary.md) for a complete overview.
 - No sensitive data in logs, commits, or error messages
 
 ### Authentication
-- Short-lived access tokens (15 minutes)
+- Short-lived access tokens (2 hours)
+- Long-lived refresh tokens (30 days) with separate signing secret
 - Refresh token rotation detects token theft
-- Rate limiting on authentication endpoints
 - HTTPS required (except local development)
 
 ### Image Handling
@@ -205,23 +210,18 @@ API specifications will be available in [contracts/](contracts/) once implemente
 
 ## Status
 
-🚧 **In Development** - Implementation in progress
-
 ### Completed
-- [x] Project structure
-- [x] Technology decisions (ADRs)
-- [x] AI workflow documentation
-- [x] Git repository initialization
-
-### In Progress
-- [ ] Backend scaffolding (Fastify + TypeScript + MongoDB)
-- [ ] Mobile scaffolding (Flutter + Riverpod)
-- [ ] Authentication flow
-- [ ] Personal details capture
-- [ ] Document capture
-- [ ] Selfie capture
-- [ ] Review and submission
-- [ ] Verification status
+- [x] Backend (Fastify + TypeScript + MongoDB)
+- [x] Mobile app (Flutter + Riverpod)
+- [x] Authentication flow with JWT (separate access/refresh secrets)
+- [x] Personal details capture with validation
+- [x] Document capture (camera + gallery)
+- [x] Selfie capture (camera + gallery)
+- [x] Review and submission
+- [x] Admin API (approve/reject with field-level rejection)
+- [x] Verification status tracking with rejection/resubmission
+- [x] Sensitive data handling (log redaction, ownership isolation, secure storage)
+- [x] Resume capability for interrupted flows
 
 ## License
 
