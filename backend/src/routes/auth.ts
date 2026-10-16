@@ -1,7 +1,9 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { RegisterInput, LoginInput, RefreshInput, LogoutInput } from '../schemas/auth';
 import { authenticate } from '../middleware/auth';
+import { config } from '../config';
 
 export async function registerHandler(
   request: FastifyRequest<{ Body: RegisterInput }>,
@@ -81,12 +83,14 @@ export async function loginHandler(
     // Generate JWT tokens
     const accessToken = (request.server as any).jwt.sign(
       { userId: user._id, email: user.email, role: user.role || 'user' },
-      { expiresIn: '15m' }
+      { expiresIn: config.jwt.accessExpiresIn }
     );
 
-    const refreshToken = (request.server as any).jwt.sign(
+    // Sign refresh token with separate secret
+    const refreshToken = jwt.sign(
       { userId: user._id, email: user.email, role: user.role || 'user', type: 'refresh' },
-      { expiresIn: '7d' }
+      config.jwt.refreshSecret,
+      { expiresIn: config.jwt.refreshExpiresIn }
     );
 
     return reply.status(200).send({
@@ -116,10 +120,10 @@ export async function refreshTokenHandler(
   try {
     const { refreshToken } = request.body;
 
-    // Verify the refresh token
+    // Verify the refresh token using the separate refresh secret
     let decoded: any;
     try {
-      decoded = (request.server as any).jwt.verify(refreshToken);
+      decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
     } catch (error) {
       return reply.status(401).send({
         error: 'Invalid refresh token',
@@ -144,12 +148,14 @@ export async function refreshTokenHandler(
     // Generate new tokens
     const newAccessToken = (request.server as any).jwt.sign(
       { userId: user._id, email: user.email, role: user.role || 'user' },
-      { expiresIn: '15m' }
+      { expiresIn: config.jwt.accessExpiresIn }
     );
 
-    const newRefreshToken = (request.server as any).jwt.sign(
+    // Sign new refresh token with separate secret
+    const newRefreshToken = jwt.sign(
       { userId: user._id, email: user.email, role: user.role || 'user', type: 'refresh' },
-      { expiresIn: '7d' }
+      config.jwt.refreshSecret,
+      { expiresIn: config.jwt.refreshExpiresIn }
     );
 
     return reply.status(200).send({

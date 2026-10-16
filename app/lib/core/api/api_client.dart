@@ -10,7 +10,11 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 class ApiClient {
   late final Dio _dio;
+  late final Dio
+  _refreshDio; // Separate Dio for refresh to avoid interceptor loop
   final TokenStorage _tokenStorage;
+  bool _isRefreshing = false;
+  _RefreshLock? _refreshLock;
 
   ApiClient(this._tokenStorage) {
     print('🔵 Initializing API Client with base URL: ${AppConfig.apiBaseUrl}');
@@ -19,9 +23,17 @@ class ApiClient {
         baseUrl: AppConfig.apiBaseUrl,
         connectTimeout: Duration(milliseconds: AppConfig.apiConnectTimeout),
         receiveTimeout: Duration(milliseconds: AppConfig.apiReceiveTimeout),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
+
+    // Separate Dio instance for refresh token calls (no interceptor)
+    _refreshDio = Dio(
+      BaseOptions(
+        baseUrl: AppConfig.apiBaseUrl,
+        connectTimeout: Duration(milliseconds: AppConfig.apiConnectTimeout),
+        receiveTimeout: Duration(milliseconds: AppConfig.apiReceiveTimeout),
+        headers: {'Content-Type': 'application/json'},
       ),
     );
 
@@ -53,11 +65,26 @@ class ApiClient {
   }
 
   Future<bool> _refreshToken() async {
+    // Prevent concurrent refresh attempts
+    if (_isRefreshing) {
+      // Wait for the ongoing refresh to complete
+      await _refreshLock?.completer.future;
+      return _refreshLock?.success ?? false;
+    }
+
+    _isRefreshing = true;
+    final lock = _RefreshLock();
+    _refreshLock = lock;
+
     try {
       final refreshToken = await _tokenStorage.getRefreshToken();
-      if (refreshToken == null) return false;
+      if (refreshToken == null) {
+        lock.complete(false);
+        return false;
+      }
 
-      final response = await _dio.post(
+      // Use separate Dio instance to avoid interceptor loop
+      final response = await _refreshDio.post(
         '/auth/refresh',
         data: {'refreshToken': refreshToken},
       );
@@ -68,13 +95,50 @@ class ApiClient {
           accessToken: data['accessToken'],
           refreshToken: data['refreshToken'],
         );
+        lock.complete(true);
         return true;
       }
+      lock.complete(false);
       return false;
     } catch (e) {
+      lock.complete(false);
       return false;
+    } finally {
+      _isRefreshing = false;
     }
   }
 
   Dio get dio => _dio;
+}
+
+class _RefreshLock {
+  final completer = _Completer<bool>();
+  bool? success;
+
+  void complete(bool result) {
+    success = result;
+    completer.complete(result);
+  }
+}
+
+class _Completer<T> {
+  T? _value;
+  bool _isCompleted = false;
+  final List<void Function(T)> _callbacks = [];
+
+  void complete(T value) {
+    if (_isCompleted) return;
+    _isCompleted = true;
+    _value = value;
+    for (final callback in _callbacks) {
+      callback(value);
+    }
+  }
+
+  Future<T> get future {
+    if (_isCompleted) return Future.value(_value);
+    final completer = _Completer<T>();
+    _callbacks.add(completer.complete);
+    return completer.future;
+  }
 }

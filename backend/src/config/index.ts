@@ -11,8 +11,8 @@ export const config = {
   jwt: {
     secret: process.env.JWT_SECRET || 'default-jwt-secret-change-me',
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret-change-me',
-    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '2h',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
   },
   storage: {
     type: process.env.STORAGE_TYPE || 'local',
