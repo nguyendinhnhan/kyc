@@ -126,22 +126,18 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
 
     final submissionNotifier = ref.read(submissionStateProvider.notifier);
 
-    if (!hasAnyErrors && currentSubmission.isRejected) {
-      // All errors cleared - reset submission via backend
-      submissionNotifier.resetSubmission();
-    } else {
-      final updatedSubmission = Submission(
-        id: currentSubmission.id,
-        userId: currentSubmission.userId,
-        status: currentSubmission.status,
-        submittedAt: currentSubmission.submittedAt,
-        reviewedAt: currentSubmission.reviewedAt,
-        notes: currentSubmission.notes,
-        rejectionDetails: hasAnyErrors ? updatedRejectionDetails : null,
-      );
-
-      submissionNotifier.updateSubmission(updatedSubmission);
-    }
+    // Update local state only — the backend handles clearing rejection details
+    // and resetting submission status when personal details are saved.
+    final updatedSubmission = Submission(
+      id: currentSubmission.id,
+      userId: currentSubmission.userId,
+      status: currentSubmission.status,
+      submittedAt: currentSubmission.submittedAt,
+      reviewedAt: currentSubmission.reviewedAt,
+      notes: currentSubmission.notes,
+      rejectionDetails: hasAnyErrors ? updatedRejectionDetails : null,
+    );
+    submissionNotifier.updateSubmission(updatedSubmission);
   }
 
   Future<void> _selectDate(BuildContext context) async {

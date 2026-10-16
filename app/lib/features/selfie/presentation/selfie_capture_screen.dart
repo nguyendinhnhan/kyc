@@ -139,7 +139,9 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
 
     if (currentSubmission?.rejectionDetails?.selfie == null) return;
 
-    // When user captures a new selfie, clear all selfie rejection errors
+    // When user captures a new selfie, clear all selfie rejection errors locally.
+    // The backend will handle clearing rejection details and resetting submission
+    // status when the selfie is uploaded (via clearRejectionField).
     final otherRejections = currentSubmission!.rejectionDetails!;
     final updatedRejectionDetails = RejectionDetails(
       personalDetails: otherRejections.personalDetails,
@@ -155,20 +157,16 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
 
     final submissionNotifier = ref.read(submissionStateProvider.notifier);
 
-    if (!hasAnyErrors && currentSubmission.isRejected) {
-      submissionNotifier.resetSubmission();
-    } else {
-      final updatedSubmission = Submission(
-        id: currentSubmission.id,
-        userId: currentSubmission.userId,
-        status: currentSubmission.status,
-        submittedAt: currentSubmission.submittedAt,
-        reviewedAt: currentSubmission.reviewedAt,
-        notes: currentSubmission.notes,
-        rejectionDetails: hasAnyErrors ? updatedRejectionDetails : null,
-      );
-      submissionNotifier.updateSubmission(updatedSubmission);
-    }
+    final updatedSubmission = Submission(
+      id: currentSubmission.id,
+      userId: currentSubmission.userId,
+      status: currentSubmission.status,
+      submittedAt: currentSubmission.submittedAt,
+      reviewedAt: currentSubmission.reviewedAt,
+      notes: currentSubmission.notes,
+      rejectionDetails: hasAnyErrors ? updatedRejectionDetails : null,
+    );
+    submissionNotifier.updateSubmission(updatedSubmission);
   }
 
   @override

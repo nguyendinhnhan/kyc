@@ -220,20 +220,18 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
 
     final submissionNotifier = ref.read(submissionStateProvider.notifier);
 
-    if (!hasAnyErrors && currentSubmission.isRejected) {
-      submissionNotifier.resetSubmission();
-    } else {
-      final updatedSubmission = Submission(
-        id: currentSubmission.id,
-        userId: currentSubmission.userId,
-        status: currentSubmission.status,
-        submittedAt: currentSubmission.submittedAt,
-        reviewedAt: currentSubmission.reviewedAt,
-        notes: currentSubmission.notes,
-        rejectionDetails: hasAnyErrors ? updatedRejectionDetails : null,
-      );
-      submissionNotifier.updateSubmission(updatedSubmission);
-    }
+    // Update local state only — the backend handles clearing rejection details
+    // and resetting submission status when the document is uploaded.
+    final updatedSubmission = Submission(
+      id: currentSubmission.id,
+      userId: currentSubmission.userId,
+      status: currentSubmission.status,
+      submittedAt: currentSubmission.submittedAt,
+      reviewedAt: currentSubmission.reviewedAt,
+      notes: currentSubmission.notes,
+      rejectionDetails: hasAnyErrors ? updatedRejectionDetails : null,
+    );
+    submissionNotifier.updateSubmission(updatedSubmission);
   }
 
   Widget _buildExistingDocumentImage(DocumentsState state) {
