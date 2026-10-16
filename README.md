@@ -15,7 +15,7 @@ This project implements a complete KYC onboarding flow:
 
 ### Demo
 
-[Watch demo video](docs/demo.mov)
+[Watch demo video](https://drive.google.com/file/d/1GXdK6VZFOFLEklQAMgkYy3pr-3bw4B_4/view?usp=sharing)
 
 ## Technology Stack
 
