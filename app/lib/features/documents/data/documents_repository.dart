@@ -33,12 +33,11 @@ class DocumentsRepository {
       final response = await _apiClient.dio.post(
         '/user/documents',
         data: formData,
+        options: Options(extra: {'filePath': file.path}),
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final document = Document.fromJson(
-          response.data['document'],
-        );
+        final document = Document.fromJson(response.data['document']);
         return DocumentResult.success(
           message: response.data['message'] ?? 'Document uploaded successfully',
           document: document,
@@ -53,9 +52,7 @@ class DocumentsRepository {
         message: e.response?.data['error'] ?? 'Failed to upload document',
       );
     } catch (e) {
-      return DocumentResult.error(
-        message: 'An unexpected error occurred',
-      );
+      return DocumentResult.error(message: 'An unexpected error occurred');
     }
   }
 
@@ -81,9 +78,7 @@ class DocumentsRepository {
         message: e.response?.data['error'] ?? 'Failed to retrieve documents',
       );
     } catch (e) {
-      return DocumentResult.error(
-        message: 'An unexpected error occurred',
-      );
+      return DocumentResult.error(message: 'An unexpected error occurred');
     }
   }
 }
@@ -115,9 +110,6 @@ class DocumentResult {
   }
 
   factory DocumentResult.error({required String message}) {
-    return DocumentResult._(
-      isSuccess: false,
-      message: message,
-    );
+    return DocumentResult._(isSuccess: false, message: message);
   }
 }

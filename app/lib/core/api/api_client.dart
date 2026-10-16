@@ -48,10 +48,51 @@ class ApiClient {
         },
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
-            // Don't retry multipart requests — file streams can't be re-read
+            // For multipart requests, refresh token and recreate FormData
+            // from the saved file path (original stream was consumed)
             final isMultipart = error.requestOptions.data is FormData;
             if (isMultipart) {
-              return handler.next(error);
+              final filePath =
+                  error.requestOptions.extra['filePath'] as String?;
+              if (filePath == null) {
+                return handler.next(error);
+              }
+
+              final refreshed = await _refreshToken();
+              if (!refreshed) {
+                return handler.next(error);
+              }
+
+              final token = await _tokenStorage.getAccessToken();
+              // Recreate FormData from the saved file
+              final newFormData = FormData.fromMap({
+                'file': await MultipartFile.fromFile(
+                  filePath,
+                  filename: filePath.split('/').last,
+                ),
+              });
+              // Copy other fields from original request (e.g., type, documentNumber)
+              if (error.requestOptions.data is FormData) {
+                final originalFields =
+                    (error.requestOptions.data as FormData).fields;
+                for (final entry in originalFields) {
+                  newFormData.fields.add(MapEntry(entry.key, entry.value));
+                }
+              }
+
+              final retryOptions = RequestOptions(
+                method: error.requestOptions.method,
+                path: error.requestOptions.path,
+                headers: {
+                  ...error.requestOptions.headers,
+                  'Authorization': 'Bearer $token',
+                },
+                data: newFormData,
+                extra: error.requestOptions.extra,
+              );
+              // Use _refreshDio to avoid re-triggering the interceptor
+              final response = await _refreshDio.fetch(retryOptions);
+              return handler.resolve(response);
             }
 
             // Token expired or invalid - try to refresh

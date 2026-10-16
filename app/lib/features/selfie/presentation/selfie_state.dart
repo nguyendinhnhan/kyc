@@ -72,8 +72,9 @@ class SelfieNotifier extends StateNotifier<SelfieState> {
       // Reload selfie to get the updated data
       await loadSelfie();
 
-      // Clear selfie rejection from submission state
-      _clearSelfieRejection();
+      // Clear selfie rejection from submission state (local update only,
+      // the backend already handles clearing via clearRejectionField)
+      _clearSelfieRejectionLocal();
 
       return true;
     } else {
@@ -90,7 +91,10 @@ class SelfieNotifier extends StateNotifier<SelfieState> {
     state = SelfieState();
   }
 
-  void _clearSelfieRejection() async {
+  /// Update local submission state to remove selfie rejection errors.
+  /// The backend already handles clearing rejection details when the selfie
+  /// is uploaded (via clearRejectionField), so we only need a local update.
+  void _clearSelfieRejectionLocal() {
     final submissionNotifier = _ref.read(submissionStateProvider.notifier);
     final currentSubmission = submissionNotifier.state.submission;
 
@@ -110,26 +114,20 @@ class SelfieNotifier extends StateNotifier<SelfieState> {
           updatedRejection.hasDocumentErrors ||
           updatedRejection.hasSelfieErrors;
 
-      // If all errors are cleared, call backend to reset submission
-      if (!hasAnyErrors && currentSubmission.isRejected) {
-        await submissionNotifier.resetSubmission();
-      } else {
-        // Create updated submission with remaining errors
-        final updatedSubmission = Submission(
-          id: currentSubmission.id,
-          userId: currentSubmission.userId,
-          status: currentSubmission.status,
-          submittedAt: currentSubmission.submittedAt,
-          reviewedAt: currentSubmission.reviewedAt,
-          notes: currentSubmission.notes,
-          rejectionDetails: updatedRejection,
-        );
+      // Update submission with remaining errors (or null if all cleared)
+      final updatedSubmission = Submission(
+        id: currentSubmission.id,
+        userId: currentSubmission.userId,
+        status: currentSubmission.status,
+        submittedAt: currentSubmission.submittedAt,
+        reviewedAt: currentSubmission.reviewedAt,
+        notes: currentSubmission.notes,
+        rejectionDetails: hasAnyErrors ? updatedRejection : null,
+      );
 
-        // Update submission state
-        submissionNotifier.state = submissionNotifier.state.copyWith(
-          submission: updatedSubmission,
-        );
-      }
+      submissionNotifier.state = submissionNotifier.state.copyWith(
+        submission: updatedSubmission,
+      );
     }
   }
 }
