@@ -15,12 +15,10 @@ class SubmissionRepository {
 
   Future<SubmissionResult> submitKYC() async {
     try {
-      final response = await _apiClient.dio.post('/user/submit');
+      final response = await _apiClient.dio.post('/user/submit', data: {});
 
       if (response.statusCode == 200) {
-        final submission = Submission.fromJson(
-          response.data['submission'],
-        );
+        final submission = Submission.fromJson(response.data['submission']);
         return SubmissionResult.success(
           message: response.data['message'] ?? 'KYC submitted successfully',
           submission: submission,
@@ -31,13 +29,13 @@ class SubmissionRepository {
         message: response.data['error'] ?? 'Failed to submit KYC',
       );
     } on DioException catch (e) {
-      return SubmissionResult.error(
-        message: e.response?.data['error'] ?? 'Failed to submit KYC',
-      );
+      final data = e.response?.data;
+      final errorMsg = data is Map
+          ? (data['error']?.toString() ?? 'Failed to submit KYC')
+          : 'Failed to submit KYC';
+      return SubmissionResult.error(message: errorMsg);
     } catch (e) {
-      return SubmissionResult.error(
-        message: 'An unexpected error occurred',
-      );
+      return SubmissionResult.error(message: 'An unexpected error occurred');
     }
   }
 
@@ -53,9 +51,7 @@ class SubmissionRepository {
           );
         }
 
-        final submission = Submission.fromJson(
-          response.data['submission'],
-        );
+        final submission = Submission.fromJson(response.data['submission']);
         return SubmissionResult.success(
           message: 'Submission retrieved successfully',
           submission: submission,
@@ -63,16 +59,18 @@ class SubmissionRepository {
       }
 
       return SubmissionResult.error(
-        message: response.data['error'] ?? 'Failed to retrieve submission',
+        message:
+            response.data['error']?.toString() ??
+            'Failed to retrieve submission',
       );
     } on DioException catch (e) {
-      return SubmissionResult.error(
-        message: e.response?.data['error'] ?? 'Failed to retrieve submission',
-      );
+      final data = e.response?.data;
+      final errorMsg = data is Map
+          ? (data['error']?.toString() ?? 'Failed to retrieve submission')
+          : 'Failed to retrieve submission';
+      return SubmissionResult.error(message: errorMsg);
     } catch (e) {
-      return SubmissionResult.error(
-        message: 'An unexpected error occurred',
-      );
+      return SubmissionResult.error(message: 'An unexpected error occurred');
     }
   }
 }
@@ -100,9 +98,6 @@ class SubmissionResult {
   }
 
   factory SubmissionResult.error({required String message}) {
-    return SubmissionResult._(
-      isSuccess: false,
-      message: message,
-    );
+    return SubmissionResult._(isSuccess: false, message: message);
   }
 }
