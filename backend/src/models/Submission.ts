@@ -1,5 +1,24 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
+export interface IRejectionDetails {
+  personalDetails?: {
+    dateOfBirth?: string;
+    nationality?: string;
+    phone?: string;
+    address?: string;
+  };
+  documents?: {
+    imageQuality?: string;
+    documentNumber?: string;
+    expirationDate?: string;
+  };
+  selfie?: {
+    imageQuality?: string;
+    faceMatch?: string;
+  };
+  generalNotes?: string;
+}
+
 export interface ISubmission extends Document {
   userId: Types.ObjectId;
   status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
@@ -7,6 +26,7 @@ export interface ISubmission extends Document {
   reviewedAt?: Date;
   reviewedBy?: Types.ObjectId;
   notes?: string;
+  rejectionDetails?: IRejectionDetails;
 }
 
 const submissionSchema = new Schema<ISubmission>(
@@ -34,6 +54,24 @@ const submissionSchema = new Schema<ISubmission>(
     },
     notes: {
       type: String,
+    },
+    rejectionDetails: {
+      personalDetails: {
+        dateOfBirth: String,
+        nationality: String,
+        phone: String,
+        address: String,
+      },
+      documents: {
+        imageQuality: String,
+        documentNumber: String,
+        expirationDate: String,
+      },
+      selfie: {
+        imageQuality: String,
+        faceMatch: String,
+      },
+      generalNotes: String,
     },
   },
   {

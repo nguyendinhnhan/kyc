@@ -24,6 +24,16 @@
       "key": "userId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "submissionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminAccessToken",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -91,7 +101,7 @@
                   "    pm.collectionVariables.set('accessToken', response.accessToken);",
                   "    pm.collectionVariables.set('refreshToken', response.refreshToken);",
                   "    pm.collectionVariables.set('userId', response.user.id);",
-                  "    console.log('Logged in as:', response.user.email);",
+                  "    console.log('Logged in as:', response.user.email, 'Role:', response.user.role);",
                   "}",
                   "",
                   "pm.test('Status code is 200', function () {",
@@ -104,6 +114,7 @@
                   "    pm.expect(response).to.have.property('accessToken');",
                   "    pm.expect(response).to.have.property('refreshToken');",
                   "    pm.expect(response.user).to.have.property('id');",
+                  "    pm.expect(response.user).to.have.property('role');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -128,6 +139,57 @@
               "path": ["auth", "login"]
             },
             "description": "Login with email and password"
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('adminAccessToken', response.accessToken);",
+                  "    console.log('Admin logged in:', response.user.email, 'Role:', response.user.role);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Admin login successful', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.message).to.eql('Login successful');",
+                  "    pm.expect(response).to.have.property('accessToken');",
+                  "    pm.expect(response).to.have.property('refreshToken');",
+                  "    pm.expect(response.user).to.have.property('id');",
+                  "    pm.expect(response.user).to.have.property('role');",
+                  "    pm.expect(response.user.role).to.eql('admin');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@kyc.com\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login as admin user. Saves token to adminAccessToken variable. Create admin first with: node scripts/create-admin.js admin@kyc.com Admin123!"
           }
         },
         {
@@ -702,6 +764,7 @@
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('submissionId', response.submission._id);",
                   "    console.log('KYC submitted:', response.message);",
                   "}",
                   "",
@@ -780,6 +843,315 @@
               "path": ["user", "submission"]
             },
             "description": "Retrieve user's KYC submission status (requires authentication)"
+          }
+        },
+        {
+          "name": "Reset Submission (Resubmit)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Submission reset:', response.message);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Submission reset successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('message');",
+                  "    pm.expect(response).to.have.property('submission');",
+                  "    pm.expect(response.submission.status).to.eql('draft');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/submission",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "submission"]
+            },
+            "description": "Reset a rejected submission back to draft status for resubmission. Only works for rejected submissions (requires authentication)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List All Submissions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Total submissions:', response.pagination.total);",
+                  "    if (response.submissions.length > 0) {",
+                  "        pm.collectionVariables.set('submissionId', response.submissions[0]._id);",
+                  "        console.log('First submission ID saved:', response.submissions[0]._id);",
+                  "    }",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Submissions listed successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('submissions');",
+                  "    pm.expect(response).to.have.property('pagination');",
+                  "    pm.expect(response.submissions).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissions?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "submissions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "submitted",
+                  "description": "Optional: filter by status (submitted, under_review, approved, rejected)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all KYC submissions with pagination (admin only)"
+          }
+        },
+        {
+          "name": "Get Submission Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Submission status:', response.submission.status);",
+                  "    console.log('User:', response.personalDetails?.fullName || 'N/A');",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Submission details retrieved', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('submission');",
+                  "    pm.expect(response).to.have.property('personalDetails');",
+                  "    pm.expect(response).to.have.property('documents');",
+                  "    pm.expect(response).to.have.property('selfie');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissions/{{submissionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "submissions", "{{submissionId}}"]
+            },
+            "description": "Get full details of a specific submission including user data, documents, and selfie (admin only)"
+          }
+        },
+        {
+          "name": "Approve Submission",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Submission approved:', response.message);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Submission approved successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('message');",
+                  "    pm.expect(response).to.have.property('submission');",
+                  "    pm.expect(response.submission.status).to.eql('approved');",
+                  "    pm.expect(response.submission).to.have.property('reviewedAt');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"All documents verified successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissions/{{submissionId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "submissions", "{{submissionId}}", "approve"]
+            },
+            "description": "Approve a KYC submission (admin only)"
+          }
+        },
+        {
+          "name": "Reject Submission (Structured)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Submission rejected:', response.message);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Submission rejected successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('message');",
+                  "    pm.expect(response).to.have.property('submission');",
+                  "    pm.expect(response.submission.status).to.eql('rejected');",
+                  "    pm.expect(response.submission).to.have.property('rejectionDetails');",
+                  "    pm.expect(response.submission).to.have.property('reviewedAt');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejectionDetails\": {\n    \"personalDetails\": {\n      \"phone\": \"Invalid format, must include country code\"\n    },\n    \"documents\": {\n      \"imageQuality\": \"Image is blurry, please retake in better lighting\",\n      \"documentNumber\": \"Number doesn't match passport format\"\n    },\n    \"selfie\": {\n      \"faceMatch\": \"Selfie doesn't clearly match ID photo\"\n    },\n    \"generalNotes\": \"Please ensure good lighting and clear focus\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/submissions/{{submissionId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "submissions", "{{submissionId}}", "reject"]
+            },
+            "description": "Reject a KYC submission with structured field-level feedback (admin only)"
+          }
+        },
+        {
+          "name": "Get Admin Stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Total submissions:', response.stats.total);",
+                  "    console.log('Pending:', response.stats.submitted);",
+                  "    console.log('Approved:', response.stats.approved);",
+                  "    console.log('Rejected:', response.stats.rejected);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Stats retrieved successfully', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('stats');",
+                  "    pm.expect(response.stats).to.have.property('total');",
+                  "    pm.expect(response.stats).to.have.property('submitted');",
+                  "    pm.expect(response.stats).to.have.property('approved');",
+                  "    pm.expect(response.stats).to.have.property('rejected');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "stats"]
+            },
+            "description": "Get dashboard statistics for all submissions (admin only)"
           }
         }
       ]

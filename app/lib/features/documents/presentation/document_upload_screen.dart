@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/widgets/authenticated_image.dart';
+import '../../submission/presentation/submission_state.dart';
 import 'documents_state.dart';
 
 class DocumentUploadScreen extends ConsumerStatefulWidget {
@@ -192,6 +193,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(documentsStateProvider);
+    final submissionState = ref.watch(submissionStateProvider);
+    final rejectionDetails =
+        submissionState.submission?.rejectionDetails?.documents;
 
     // Pre-fill document number when documents are loaded
     if (!state.isLoading && state.documents.isNotEmpty && !_hasPrefilled) {
@@ -251,11 +255,12 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: _documentNumberController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Document Number',
                         hintText: 'Enter document number',
-                        prefixIcon: Icon(Icons.numbers),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.numbers),
+                        border: const OutlineInputBorder(),
+                        errorText: rejectionDetails?.documentNumber,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -281,7 +286,11 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                       child: Container(
                         height: 200,
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
+                          border: Border.all(
+                            color: rejectionDetails?.imageQuality != null
+                                ? Colors.red
+                                : Colors.grey,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                           color: Colors.grey[100],
                         ),
@@ -296,6 +305,33 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
                               ),
                       ),
                     ),
+                    if (rejectionDetails?.imageQuality != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.red[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                rejectionDetails!.imageQuality!,
+                                style: TextStyle(color: Colors.red[900]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: state.isLoading ? null : _handleUpload,

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/authenticated_image.dart';
 import '../../auth/presentation/auth_state.dart';
 import '../../personal_details/presentation/personal_details_state.dart';
 import '../../documents/presentation/documents_state.dart';
 import '../../selfie/presentation/selfie_state.dart';
+import '../domain/submission.dart';
 import 'submission_state.dart';
 
 class ReviewSubmitScreen extends ConsumerStatefulWidget {
@@ -83,7 +85,8 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
     final submissionState = ref.watch(submissionStateProvider);
     final user = authState.user;
 
-    final allRequirementsMet = personalDetailsState.isSaved &&
+    final allRequirementsMet =
+        personalDetailsState.isSaved &&
         documentsState.isUploaded &&
         selfieState.isUploaded;
 
@@ -97,105 +100,541 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
       ),
       body: submissionState.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : submissionState.isSubmitted
-              ? _buildAlreadySubmittedView()
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildUserInfoCard(user),
-                      const SizedBox(height: 16),
-                      _buildPersonalDetailsCard(personalDetailsState),
-                      const SizedBox(height: 16),
-                      _buildDocumentsCard(documentsState),
-                      const SizedBox(height: 16),
-                      _buildSelfieCard(selfieState),
-                      const SizedBox(height: 24),
-                      if (!allRequirementsMet)
-                        Card(
-                          color: Colors.orange[50],
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                Icon(Icons.warning, color: Colors.orange[700]),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Text(
-                                    'Please complete all requirements before submitting.',
-                                    style: TextStyle(
-                                      color: Colors.orange,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
+          : submissionState.submission != null &&
+                submissionState.submission!.status != 'draft'
+          ? _buildStatusView(submissionState)
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildUserInfoCard(user),
+                  const SizedBox(height: 16),
+                  _buildPersonalDetailsCard(personalDetailsState),
+                  const SizedBox(height: 16),
+                  _buildDocumentsCard(documentsState),
+                  const SizedBox(height: 16),
+                  _buildSelfieCard(selfieState),
+                  const SizedBox(height: 24),
+                  if (!allRequirementsMet)
+                    Card(
+                      color: Colors.orange[50],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.orange[700]),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'Please complete all requirements before submitting.',
+                                style: TextStyle(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: allRequirementsMet && !submissionState.isLoading
-                            ? _showConfirmationDialog
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.all(16),
-                          textStyle: const TextStyle(fontSize: 16),
-                          backgroundColor: Colors.green,
-                        ),
-                        child: submissionState.isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Submit KYC Application'),
                       ),
-                    ],
+                    ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: allRequirementsMet && !submissionState.isLoading
+                        ? _showConfirmationDialog
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(16),
+                      textStyle: const TextStyle(fontSize: 16),
+                      backgroundColor: Colors.green,
+                    ),
+                    child: submissionState.isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Submit KYC Application'),
                   ),
-                ),
+                ],
+              ),
+            ),
     );
   }
 
-  Widget _buildAlreadySubmittedView() {
+  Widget _buildStatusView(SubmissionState submissionState) {
+    final submission = submissionState.submission!;
+
+    // Check if there are any field-level errors (excluding generalNotes)
+    final hasFieldErrors =
+        submission.rejectionDetails != null &&
+        (submission.rejectionDetails!.hasPersonalDetailsErrors ||
+            submission.rejectionDetails!.hasDocumentErrors ||
+            submission.rejectionDetails!.hasSelfieErrors);
+
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.check_circle,
-            size: 100,
-            color: Colors.green[400],
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'KYC Submitted',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildStatusIcon(submission.status),
+            const SizedBox(height: 24),
+            _buildStatusTitle(submission.status),
+            const SizedBox(height: 12),
+            _buildStatusDescription(submission),
+            const SizedBox(height: 32),
+            _buildStatusDetailsCard(submission),
+            const SizedBox(height: 32),
+            if (submission.isRejected) ...[
+              if (hasFieldErrors)
+                Card(
+                  color: Colors.orange[50],
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning, color: Colors.orange[700]),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Please fix all errors above before resubmitting your application.',
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                const Card(
+                  color: Colors.green,
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'All errors have been fixed. You can now resubmit your application.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: hasFieldErrors
+                    ? null
+                    : () async {
+                        final notifier = ref.read(
+                          submissionStateProvider.notifier,
+                        );
+                        await notifier.resetSubmission();
+
+                        if (mounted) {
+                          final state = ref.read(submissionStateProvider);
+                          if (state.errorMessage != null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(state.errorMessage!),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('KYC resubmitted successfully!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            context.go('/home');
+                          }
+                        }
+                      },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Resubmit Application'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+            ] else
+              ElevatedButton(
+                onPressed: () => context.go('/home'),
+                child: const Text('Back to Home'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusIcon(String status) {
+    IconData icon;
+    Color color;
+
+    switch (status) {
+      case 'submitted':
+        icon = Icons.schedule;
+        color = Colors.blue;
+        break;
+      case 'under_review':
+        icon = Icons.rate_review;
+        color = Colors.orange;
+        break;
+      case 'approved':
+        icon = Icons.check_circle;
+        color = Colors.green;
+        break;
+      case 'rejected':
+        icon = Icons.cancel;
+        color = Colors.red;
+        break;
+      default:
+        icon = Icons.help;
+        color = Colors.grey;
+    }
+
+    return Icon(icon, size: 100, color: color);
+  }
+
+  Widget _buildStatusTitle(String status) {
+    String title;
+
+    switch (status) {
+      case 'submitted':
+        title = 'Application Submitted';
+        break;
+      case 'under_review':
+        title = 'Under Review';
+        break;
+      case 'approved':
+        title = 'Approved';
+        break;
+      case 'rejected':
+        title = 'Application Rejected';
+        break;
+      default:
+        title = 'Unknown Status';
+    }
+
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    );
+  }
+
+  Widget _buildStatusDescription(Submission submission) {
+    String description;
+
+    switch (submission.status) {
+      case 'submitted':
+        description =
+            'Your KYC application has been submitted\nand is awaiting review.';
+        break;
+      case 'under_review':
+        description =
+            'Your application is currently being reviewed\nby our team.';
+        break;
+      case 'approved':
+        description =
+            'Congratulations! Your KYC application\nhas been approved.';
+        break;
+      case 'rejected':
+        description =
+            'Your application has been rejected.\nPlease review the reason below.';
+        break;
+      default:
+        description = '';
+    }
+
+    return Text(
+      description,
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontSize: 16, color: Colors.grey),
+    );
+  }
+
+  Widget _buildStatusDetailsCard(Submission submission) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Details',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 16),
+            _buildDetailRow(
+              'Status',
+              submission.status.replaceAll('_', ' ').toUpperCase(),
+              _getStatusColor(submission.status),
+            ),
+            if (submission.submittedAt != null) ...[
+              const Divider(height: 24),
+              _buildDetailRow(
+                'Submitted',
+                _formatDate(submission.submittedAt!),
+                Colors.black87,
+              ),
+            ],
+            if (submission.reviewedAt != null) ...[
+              const Divider(height: 24),
+              _buildDetailRow(
+                'Reviewed',
+                _formatDate(submission.reviewedAt!),
+                Colors.black87,
+              ),
+            ],
+            if (submission.rejectionDetails != null) ...[
+              const Divider(height: 24),
+              _buildRejectionDetails(submission.rejectionDetails!),
+            ],
+            if (submission.notes != null && submission.notes!.isNotEmpty) ...[
+              const Divider(height: 24),
+              const Text(
+                'General Notes',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: submission.isRejected
+                      ? Colors.red[50]
+                      : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: submission.isRejected
+                        ? Colors.red[200]!
+                        : Colors.grey[300]!,
+                  ),
+                ),
+                child: Text(
+                  submission.notes!,
+                  style: TextStyle(
+                    color: submission.isRejected
+                        ? Colors.red[900]
+                        : Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRejectionDetails(RejectionDetails details) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Rejection Reasons',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.red,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (details.hasPersonalDetailsErrors) ...[
+          _buildRejectionSection(
+            'Personal Details',
+            Icons.person,
+            _getPersonalDetailsErrors(details.personalDetails!),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Your KYC application has been submitted\nand is being reviewed.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
+        ],
+        if (details.hasDocumentErrors) ...[
+          _buildRejectionSection(
+            'Documents',
+            Icons.description,
+            _getDocumentErrors(details.documents!),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (details.hasSelfieErrors) ...[
+          _buildRejectionSection(
+            'Selfie',
+            Icons.camera_alt,
+            _getSelfieErrors(details.selfie!),
+          ),
+        ],
+        if (details.generalNotes != null &&
+            details.generalNotes!.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red[200]!),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 20, color: Colors.red[700]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    details.generalNotes!,
+                    style: TextStyle(color: Colors.red[900]),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: () => context.go('/home'),
-            child: const Text('Back to Home'),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRejectionSection(
+    String title,
+    IconData icon,
+    List<String> errors,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: Colors.red[700]),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red[900],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...errors.map(
+            (error) => Padding(
+              padding: const EdgeInsets.only(left: 28, bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('• ', style: TextStyle(color: Colors.red[700])),
+                  Expanded(
+                    child: Text(
+                      error,
+                      style: TextStyle(color: Colors.red[900]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  List<String> _getPersonalDetailsErrors(PersonalDetailsRejection details) {
+    final errors = <String>[];
+    if (details.dateOfBirth != null)
+      errors.add('Date of Birth: ${details.dateOfBirth}');
+    if (details.nationality != null)
+      errors.add('Nationality: ${details.nationality}');
+    if (details.phone != null) errors.add('Phone: ${details.phone}');
+    if (details.address != null) errors.add('Address: ${details.address}');
+    return errors;
+  }
+
+  List<String> _getDocumentErrors(DocumentRejection details) {
+    final errors = <String>[];
+    if (details.imageQuality != null)
+      errors.add('Image Quality: ${details.imageQuality}');
+    if (details.documentNumber != null)
+      errors.add('Document Number: ${details.documentNumber}');
+    if (details.expirationDate != null)
+      errors.add('Expiration Date: ${details.expirationDate}');
+    return errors;
+  }
+
+  List<String> _getSelfieErrors(SelfieRejection details) {
+    final errors = <String>[];
+    if (details.imageQuality != null)
+      errors.add('Image Quality: ${details.imageQuality}');
+    if (details.faceMatch != null)
+      errors.add('Face Match: ${details.faceMatch}');
+    return errors;
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'submitted':
+        return Colors.blue;
+      case 'under_review':
+        return Colors.orange;
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildDetailRow(String label, String value, Color valueColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(fontWeight: FontWeight.w600, color: valueColor),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _buildUserInfoCard(dynamic user) {
@@ -207,10 +646,7 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
           children: [
             const Text(
               'User Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _buildInfoRow('Full Name', user?.fullName ?? 'N/A'),
@@ -235,10 +671,7 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
               children: [
                 const Text(
                   'Personal Details',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 Icon(
@@ -253,10 +686,7 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
             ),
             const SizedBox(height: 12),
             if (details != null) ...[
-              _buildInfoRow(
-                'Date of Birth',
-                details.dateOfBirth,
-              ),
+              _buildInfoRow('Date of Birth', details.dateOfBirth),
               const SizedBox(height: 8),
               _buildInfoRow('Nationality', details.nationality),
               const SizedBox(height: 8),
@@ -293,19 +723,12 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
               children: [
                 const Text(
                   'Documents',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 Icon(
-                  documentsState.isUploaded
-                      ? Icons.check_circle
-                      : Icons.error,
-                  color: documentsState.isUploaded
-                      ? Colors.green
-                      : Colors.red,
+                  documentsState.isUploaded ? Icons.check_circle : Icons.error,
+                  color: documentsState.isUploaded ? Colors.green : Colors.red,
                 ),
               ],
             ),
@@ -313,10 +736,25 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
             if (documentsState.documents.isNotEmpty) ...[
               for (final doc in documentsState.documents)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: _buildInfoRow(
-                    doc.type.replaceAll('_', ' ').toUpperCase(),
-                    doc.documentNumber,
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInfoRow(
+                        doc.type.replaceAll('_', ' ').toUpperCase(),
+                        doc.documentNumber,
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: AuthenticatedImage(
+                          path: '/user/documents/${doc.id}/image',
+                          fit: BoxFit.cover,
+                          height: 150,
+                          width: double.infinity,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ] else
@@ -346,25 +784,26 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
               children: [
                 const Text(
                   'Selfie',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 Icon(
-                  selfieState.isUploaded
-                      ? Icons.check_circle
-                      : Icons.error,
-                  color: selfieState.isUploaded
-                      ? Colors.green
-                      : Colors.red,
+                  selfieState.isUploaded ? Icons.check_circle : Icons.error,
+                  color: selfieState.isUploaded ? Colors.green : Colors.red,
                 ),
               ],
             ),
             const SizedBox(height: 12),
             if (selfieState.isUploaded)
-              const Text('Selfie captured successfully')
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: const AuthenticatedImage(
+                  path: '/user/selfie/image',
+                  fit: BoxFit.cover,
+                  height: 200,
+                  width: double.infinity,
+                ),
+              )
             else
               const Text(
                 'No selfie captured',

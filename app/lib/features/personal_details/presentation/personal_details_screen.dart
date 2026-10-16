@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../submission/presentation/submission_state.dart';
 import '../domain/personal_details.dart';
 import 'personal_details_state.dart';
 
@@ -8,7 +9,8 @@ class PersonalDetailsScreen extends ConsumerStatefulWidget {
   const PersonalDetailsScreen({super.key});
 
   @override
-  ConsumerState<PersonalDetailsScreen> createState() => _PersonalDetailsScreenState();
+  ConsumerState<PersonalDetailsScreen> createState() =>
+      _PersonalDetailsScreenState();
 }
 
 class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
@@ -112,6 +114,9 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(personalDetailsStateProvider);
+    final submissionState = ref.watch(submissionStateProvider);
+    final rejectionDetails =
+        submissionState.submission?.rejectionDetails?.personalDetails;
 
     // Populate fields when details are loaded
     if (state.details != null && _dateOfBirthController.text.isEmpty) {
@@ -151,6 +156,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                         hintText: 'YYYY-MM-DD',
                         prefixIcon: const Icon(Icons.calendar_today),
                         border: const OutlineInputBorder(),
+                        errorText: rejectionDetails?.dateOfBirth,
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.calendar_today),
                           onPressed: () => _selectDate(context),
@@ -167,10 +173,11 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                     TextFormField(
                       controller: _nationalityController,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Nationality',
-                        prefixIcon: Icon(Icons.flag),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.flag),
+                        border: const OutlineInputBorder(),
+                        errorText: rejectionDetails?.nationality,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -186,11 +193,12 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Phone Number',
                         hintText: '+1234567890',
-                        prefixIcon: Icon(Icons.phone),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.phone),
+                        border: const OutlineInputBorder(),
+                        errorText: rejectionDetails?.phone,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -215,10 +223,11 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                     TextFormField(
                       controller: _streetController,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Street Address',
-                        prefixIcon: Icon(Icons.home),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.home),
+                        border: const OutlineInputBorder(),
+                        errorText: rejectionDetails?.address,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {

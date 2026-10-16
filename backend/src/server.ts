@@ -8,6 +8,7 @@ import authRoutes from './routes/auth';
 import { registerSchema, loginSchema, refreshSchema, logoutSchema } from './schemas/auth';
 import { personalDetailsSchema } from './schemas/personalDetails';
 import { authenticate } from './middleware/auth';
+import { requireAdmin } from './middleware/admin';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -177,6 +178,55 @@ export async function buildApp(): Promise<FastifyInstance> {
     handler: async (request, reply) => {
       const { getSubmissionHandler } = await import('./routes/submission');
       return getSubmissionHandler(request, reply);
+    },
+  });
+
+  app.delete('/user/submission', {
+    preHandler: authenticate,
+    handler: async (request, reply) => {
+      const { resetSubmissionHandler } = await import('./routes/submission');
+      return resetSubmissionHandler(request, reply);
+    },
+  });
+
+  // Admin routes (protected, admin only)
+  app.get('/admin/submissions', {
+    preHandler: [authenticate, requireAdmin],
+    handler: async (request, reply) => {
+      const { listSubmissionsHandler } = await import('./routes/admin');
+      return listSubmissionsHandler(request, reply);
+    },
+  });
+
+  app.get('/admin/submissions/:id', {
+    preHandler: [authenticate, requireAdmin],
+    handler: async (request, reply) => {
+      const { getSubmissionDetailsHandler } = await import('./routes/admin');
+      return getSubmissionDetailsHandler(request, reply);
+    },
+  });
+
+  app.post('/admin/submissions/:id/approve', {
+    preHandler: [authenticate, requireAdmin],
+    handler: async (request, reply) => {
+      const { approveSubmissionHandler } = await import('./routes/admin');
+      return approveSubmissionHandler(request, reply);
+    },
+  });
+
+  app.post('/admin/submissions/:id/reject', {
+    preHandler: [authenticate, requireAdmin],
+    handler: async (request, reply) => {
+      const { rejectSubmissionHandler } = await import('./routes/admin');
+      return rejectSubmissionHandler(request, reply);
+    },
+  });
+
+  app.get('/admin/stats', {
+    preHandler: [authenticate, requireAdmin],
+    handler: async (request, reply) => {
+      const { getStatsHandler } = await import('./routes/admin');
+      return getStatsHandler(request, reply);
     },
   });
 

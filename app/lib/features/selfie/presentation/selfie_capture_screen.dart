@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/widgets/authenticated_image.dart';
+import '../../submission/presentation/submission_state.dart';
 import 'selfie_state.dart';
 
 class SelfieCaptureScreen extends ConsumerStatefulWidget {
@@ -129,6 +130,9 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(selfieStateProvider);
+    final submissionState = ref.watch(submissionStateProvider);
+    final rejectionDetails =
+        submissionState.submission?.rejectionDetails?.selfie;
 
     return Scaffold(
       appBar: AppBar(
@@ -184,7 +188,13 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                     child: Container(
                       height: 300,
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
+                        border: Border.all(
+                          color:
+                              (rejectionDetails?.imageQuality != null ||
+                                  rejectionDetails?.faceMatch != null)
+                              ? Colors.red
+                              : Colors.grey,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                         color: Colors.grey[100],
                       ),
@@ -232,6 +242,60 @@ class _SelfieCaptureScreenState extends ConsumerState<SelfieCaptureScreen> {
                             ),
                     ),
                   ),
+                  if (rejectionDetails?.imageQuality != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red[700],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Image Quality: ${rejectionDetails!.imageQuality}',
+                              style: TextStyle(color: Colors.red[900]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (rejectionDetails?.faceMatch != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red[700],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Face Match: ${rejectionDetails!.faceMatch}',
+                              style: TextStyle(color: Colors.red[900]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 32),
                   ElevatedButton.icon(
                     onPressed: state.isLoading ? null : _showImageSourceDialog,

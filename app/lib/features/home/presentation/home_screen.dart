@@ -35,6 +35,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final submissionState = ref.watch(submissionStateProvider);
     final user = authState.user;
 
+    // Check for rejection errors in each section
+    final rejectionDetails = submissionState.submission?.rejectionDetails;
+    final hasPersonalDetailsError =
+        rejectionDetails?.hasPersonalDetailsErrors ?? false;
+    final hasDocumentError = rejectionDetails?.hasDocumentErrors ?? false;
+    final hasSelfieError = rejectionDetails?.hasSelfieErrors ?? false;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('KYC Onboarding'),
@@ -89,6 +96,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         'Personal Details',
                         personalDetailsState.isSaved,
                         Icons.person,
+                        hasError: hasPersonalDetailsError,
                       ),
                     ),
                     const Divider(height: 32),
@@ -98,6 +106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         'Document Upload',
                         documentsState.isUploaded,
                         Icons.description,
+                        hasError: hasDocumentError,
                       ),
                     ),
                     const Divider(height: 32),
@@ -107,6 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         'Selfie Capture',
                         selfieState.isUploaded,
                         Icons.camera_alt,
+                        hasError: hasSelfieError,
                       ),
                     ),
                     const Divider(height: 32),
@@ -142,10 +152,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildStatusRow(String label, bool completed, IconData icon) {
+  Widget _buildStatusRow(
+    String label,
+    bool completed,
+    IconData icon, {
+    bool hasError = false,
+  }) {
+    final color = hasError
+        ? Colors.red
+        : (completed ? Colors.green : Colors.grey);
+    final statusIcon = hasError
+        ? Icons.error
+        : (completed ? Icons.check_circle : Icons.radio_button_unchecked);
+
     return Row(
       children: [
-        Icon(icon, color: completed ? Colors.green : Colors.grey, size: 32),
+        Icon(icon, color: color, size: 32),
         const SizedBox(width: 16),
         Expanded(
           child: Text(
@@ -153,14 +175,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: completed ? Colors.green : Colors.black87,
+              color: hasError
+                  ? Colors.red
+                  : (completed ? Colors.green : Colors.black87),
             ),
           ),
         ),
-        Icon(
-          completed ? Icons.check_circle : Icons.radio_button_unchecked,
-          color: completed ? Colors.green : Colors.grey,
-        ),
+        Icon(statusIcon, color: color),
       ],
     );
   }

@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { SelfieModel } from '../models/Selfie';
+import { SubmissionModel } from '../models/Submission';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -62,6 +63,9 @@ export async function uploadSelfieHandler(
       }
     );
 
+    // Clear selfie from submission rejection details
+    await clearRejectionField(userId, 'selfie');
+
     return reply.status(201).send({
       message: 'Selfie uploaded successfully',
       selfie,
@@ -114,5 +118,43 @@ export async function getSelfieImageHandler(
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Failed to retrieve selfie image' });
+  }
+}
+
+// Helper function to clear a specific field from rejection details
+async function clearRejectionField(
+  userId: string,
+  field: 'personalDetails' | 'documents' | 'selfie'
+) {
+  try {
+    const submission = await SubmissionModel.findOne({ userId });
+    
+    if (submission && submission.rejectionDetails) {
+      // Clear the specific field
+      if (field === 'personalDetails') {
+        submission.rejectionDetails.personalDetails = undefined;
+      } else if (field === 'documents') {
+        submission.rejectionDetails.documents = undefined;
+      } else if (field === 'selfie') {
+        submission.rejectionDetails.selfie = undefined;
+      }
+      
+      // Check if all rejection fields are now empty
+      const hasAnyErrors = 
+        submission.rejectionDetails.personalDetails ||
+        submission.rejectionDetails.documents ||
+        submission.rejectionDetails.selfie;
+      
+      // If no errors remain, reset the submission to draft
+      if (!hasAnyErrors) {
+        submission.status = 'draft';
+        submission.rejectionDetails = undefined;
+        submission.reviewedAt = undefined;
+      }
+      
+      await submission.save();
+    }
+  } catch (error) {
+    console.error('Error clearing rejection field:', error);
   }
 }

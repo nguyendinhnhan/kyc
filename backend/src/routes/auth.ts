@@ -80,12 +80,12 @@ export async function loginHandler(
 
     // Generate JWT tokens
     const accessToken = (request.server as any).jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, role: user.role || 'user' },
       { expiresIn: '15m' }
     );
 
     const refreshToken = (request.server as any).jwt.sign(
-      { userId: user._id, email: user.email, type: 'refresh' },
+      { userId: user._id, email: user.email, role: user.role || 'user', type: 'refresh' },
       { expiresIn: '7d' }
     );
 
@@ -97,6 +97,7 @@ export async function loginHandler(
         id: user._id,
         email: user.email,
         fullName: user.fullName,
+        role: user.role || 'user',
         createdAt: user.createdAt,
       },
     });
@@ -142,12 +143,12 @@ export async function refreshTokenHandler(
 
     // Generate new tokens
     const newAccessToken = (request.server as any).jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, role: user.role || 'user' },
       { expiresIn: '15m' }
     );
 
     const newRefreshToken = (request.server as any).jwt.sign(
-      { userId: user._id, email: user.email, type: 'refresh' },
+      { userId: user._id, email: user.email, role: user.role || 'user', type: 'refresh' },
       { expiresIn: '7d' }
     );
 

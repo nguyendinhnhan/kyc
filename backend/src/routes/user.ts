@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
 import { PersonalDetails } from '../models/PersonalDetails';
 import { PersonalDetailsInput } from '../schemas/personalDetails';
+import { SubmissionModel } from '../models/Submission';
 
 export async function savePersonalDetailsHandler(
   request: FastifyRequest<{ Body: PersonalDetailsInput }>,
@@ -25,6 +26,9 @@ export async function savePersonalDetailsHandler(
         },
         { new: true }
       );
+
+      // Clear personalDetails from submission rejection details
+      await clearRejectionField(userId, 'personalDetails');
 
       return reply.status(200).send({
         message: 'Personal details updated successfully',
@@ -68,6 +72,44 @@ export async function getPersonalDetailsHandler(
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Internal server error' });
+  }
+}
+
+// Helper function to clear a specific field from rejection details
+async function clearRejectionField(
+  userId: string,
+  field: 'personalDetails' | 'documents' | 'selfie'
+) {
+  try {
+    const submission = await SubmissionModel.findOne({ userId });
+    
+    if (submission && submission.rejectionDetails) {
+      // Clear the specific field
+      if (field === 'personalDetails') {
+        submission.rejectionDetails.personalDetails = undefined;
+      } else if (field === 'documents') {
+        submission.rejectionDetails.documents = undefined;
+      } else if (field === 'selfie') {
+        submission.rejectionDetails.selfie = undefined;
+      }
+      
+      // Check if all rejection fields are now empty
+      const hasAnyErrors = 
+        submission.rejectionDetails.personalDetails ||
+        submission.rejectionDetails.documents ||
+        submission.rejectionDetails.selfie;
+      
+      // If no errors remain, reset the submission to draft
+      if (!hasAnyErrors) {
+        submission.status = 'draft';
+        submission.rejectionDetails = undefined;
+        submission.reviewedAt = undefined;
+      }
+      
+      await submission.save();
+    }
+  } catch (error) {
+    console.error('Error clearing rejection field:', error);
   }
 }
 
