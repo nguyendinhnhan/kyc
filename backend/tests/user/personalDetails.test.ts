@@ -23,7 +23,7 @@ describe('POST /user/personal-details', () => {
   beforeEach(async () => {
     await User.deleteMany({});
     await PersonalDetails.deleteMany({});
-    
+
     // Create a test user and get token
     await app.inject({
       method: 'POST',
@@ -92,7 +92,7 @@ describe('POST /user/personal-details', () => {
     });
 
     expect(response.statusCode).toBe(201);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('message', 'Personal details saved successfully');
     expect(body).toHaveProperty('personalDetails');
@@ -146,7 +146,7 @@ describe('POST /user/personal-details', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('message', 'Personal details updated successfully');
     expect(body.personalDetails.nationality).toBe('Canadian');

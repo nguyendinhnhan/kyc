@@ -600,10 +600,12 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
 
   List<String> _getPersonalDetailsErrors(PersonalDetailsRejection details) {
     final errors = <String>[];
-    if (details.dateOfBirth != null)
+    if (details.dateOfBirth != null) {
       errors.add('Date of Birth: ${details.dateOfBirth}');
-    if (details.nationality != null)
+    }
+    if (details.nationality != null) {
       errors.add('Nationality: ${details.nationality}');
+    }
     if (details.phone != null) errors.add('Phone: ${details.phone}');
     if (details.address != null) errors.add('Address: ${details.address}');
     return errors;
@@ -611,21 +613,26 @@ class _ReviewSubmitScreenState extends ConsumerState<ReviewSubmitScreen> {
 
   List<String> _getDocumentErrors(DocumentRejection details) {
     final errors = <String>[];
-    if (details.imageQuality != null)
+    if (details.imageQuality != null) {
       errors.add('Image Quality: ${details.imageQuality}');
-    if (details.documentNumber != null)
+    }
+    if (details.documentNumber != null) {
       errors.add('Document Number: ${details.documentNumber}');
-    if (details.expirationDate != null)
+    }
+    if (details.expirationDate != null) {
       errors.add('Expiration Date: ${details.expirationDate}');
+    }
     return errors;
   }
 
   List<String> _getSelfieErrors(SelfieRejection details) {
     final errors = <String>[];
-    if (details.imageQuality != null)
+    if (details.imageQuality != null) {
       errors.add('Image Quality: ${details.imageQuality}');
-    if (details.faceMatch != null)
+    }
+    if (details.faceMatch != null) {
       errors.add('Face Match: ${details.faceMatch}');
+    }
     return errors;
   }
 

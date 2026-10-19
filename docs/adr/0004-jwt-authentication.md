@@ -1,4 +1,7 @@
 # 0004: JWT authentication with refresh token rotation
+
+Implementation corrections and current limits: see [ADR-0008](0008-interview-readiness-corrections.md). Earlier implementation claims below are historical and are superseded where they conflict.
+
 Status: Accepted
 Date: 2026-10-14
 

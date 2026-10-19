@@ -78,7 +78,4 @@ const personalDetailsSchema = new Schema<IPersonalDetails>(
   }
 );
 
-export const PersonalDetails = model<IPersonalDetails>(
-  'PersonalDetails',
-  personalDetailsSchema
-);
+export const PersonalDetails = model<IPersonalDetails>('PersonalDetails', personalDetailsSchema);

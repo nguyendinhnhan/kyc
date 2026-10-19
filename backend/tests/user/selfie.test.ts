@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { buildApp } from '../../src/server';
 import { User } from '../../src/models/User';
@@ -20,7 +21,7 @@ describe('POST /user/selfie', () => {
     await app.close();
     await database.disconnect();
     // Clean up test uploads
-    const uploadsDir = path.join(__dirname, '../../uploads');
+    const uploadsDir = process.env.UPLOAD_DIR!;
     if (fs.existsSync(uploadsDir)) {
       const files = fs.readdirSync(uploadsDir);
       for (const file of files) {
@@ -32,7 +33,7 @@ describe('POST /user/selfie', () => {
   beforeEach(async () => {
     await User.deleteMany({});
     await SelfieModel.deleteMany({});
-    
+
     // Create a test user and get token
     await app.inject({
       method: 'POST',
@@ -68,8 +69,8 @@ describe('POST /user/selfie', () => {
 
   it('should upload a selfie', async () => {
     // Create a fake image buffer
-    const fakeImage = Buffer.from('fake-image-data');
-    
+    const fakeImage = readFileSync('tests/fixtures/synthetic.jpg');
+
     const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
     const body = [
       `--${boundary}`,
@@ -85,14 +86,11 @@ describe('POST /user/selfie', () => {
       method: 'POST',
       url: '/user/selfie',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
       },
       payload: Buffer.from(body, 'binary'),
     });
-
-    console.log('Response status:', response.statusCode);
-    console.log('Response body:', response.body);
 
     expect(response.statusCode).toBe(201);
     const responseBody = JSON.parse(response.body);
@@ -103,7 +101,7 @@ describe('POST /user/selfie', () => {
 
   it('should update existing selfie', async () => {
     // Upload first selfie
-    const fakeImage1 = Buffer.from('fake-image-data-1');
+    const fakeImage1 = readFileSync('tests/fixtures/synthetic.jpg');
     const boundary1 = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
     const body1 = [
       `--${boundary1}`,
@@ -119,14 +117,14 @@ describe('POST /user/selfie', () => {
       method: 'POST',
       url: '/user/selfie',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': `multipart/form-data; boundary=${boundary1}`,
       },
       payload: Buffer.from(body1, 'binary'),
     });
 
     // Upload second selfie (should replace first)
-    const fakeImage2 = Buffer.from('fake-image-data-2');
+    const fakeImage2 = readFileSync('tests/fixtures/synthetic.jpg');
     const boundary2 = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
     const body2 = [
       `--${boundary2}`,
@@ -142,7 +140,7 @@ describe('POST /user/selfie', () => {
       method: 'POST',
       url: '/user/selfie',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': `multipart/form-data; boundary=${boundary2}`,
       },
       payload: Buffer.from(body2, 'binary'),
@@ -171,7 +169,7 @@ describe('GET /user/selfie', () => {
   beforeEach(async () => {
     await User.deleteMany({});
     await SelfieModel.deleteMany({});
-    
+
     // Create a test user and get token
     await app.inject({
       method: 'POST',
@@ -210,7 +208,7 @@ describe('GET /user/selfie', () => {
       method: 'GET',
       url: '/user/selfie',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -221,7 +219,7 @@ describe('GET /user/selfie', () => {
 
   it('should return user selfie', async () => {
     // Upload selfie first
-    const fakeImage = Buffer.from('fake-image-data');
+    const fakeImage = readFileSync('tests/fixtures/synthetic.jpg');
     const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
     const body = [
       `--${boundary}`,
@@ -237,7 +235,7 @@ describe('GET /user/selfie', () => {
       method: 'POST',
       url: '/user/selfie',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
       },
       payload: Buffer.from(body, 'binary'),
@@ -248,7 +246,7 @@ describe('GET /user/selfie', () => {
       method: 'GET',
       url: '/user/selfie',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 

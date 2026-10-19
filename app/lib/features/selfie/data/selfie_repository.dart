@@ -16,6 +16,7 @@ class SelfieRepository {
 
   Future<SelfieResult> uploadSelfie({required File file}) async {
     try {
+      final sessionVersion = _apiClient.sessionVersion;
       // Create multipart form data
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(
@@ -27,7 +28,7 @@ class SelfieRepository {
       final response = await _apiClient.dio.post(
         '/user/selfie',
         data: formData,
-        options: Options(extra: {'filePath': file.path}),
+        options: Options(extra: {'sessionVersion': sessionVersion}),
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {

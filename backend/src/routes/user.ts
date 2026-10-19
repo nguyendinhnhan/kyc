@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
 import { PersonalDetails } from '../models/PersonalDetails';
 import { PersonalDetailsInput } from '../schemas/personalDetails';
-import { SubmissionModel } from '../models/Submission';
+import { clearRejectionField } from '../services/workflow';
 
 export async function savePersonalDetailsHandler(
   request: FastifyRequest<{ Body: PersonalDetailsInput }>,
@@ -50,15 +50,12 @@ export async function savePersonalDetailsHandler(
       });
     }
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Internal server error' });
   }
 }
 
-export async function getPersonalDetailsHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function getPersonalDetailsHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const userId = (request as any).user.userId;
 
@@ -70,46 +67,8 @@ export async function getPersonalDetailsHandler(
 
     return reply.status(200).send({ personalDetails });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Internal server error' });
-  }
-}
-
-// Helper function to clear a specific field from rejection details
-async function clearRejectionField(
-  userId: string,
-  field: 'personalDetails' | 'documents' | 'selfie'
-) {
-  try {
-    const submission = await SubmissionModel.findOne({ userId });
-    
-    if (submission && submission.rejectionDetails) {
-      // Clear the specific field
-      if (field === 'personalDetails') {
-        submission.rejectionDetails.personalDetails = undefined;
-      } else if (field === 'documents') {
-        submission.rejectionDetails.documents = undefined;
-      } else if (field === 'selfie') {
-        submission.rejectionDetails.selfie = undefined;
-      }
-      
-      // Check if all rejection fields are now empty
-      const hasAnyErrors = 
-        submission.rejectionDetails.personalDetails ||
-        submission.rejectionDetails.documents ||
-        submission.rejectionDetails.selfie;
-      
-      // If no errors remain, reset the submission to draft
-      if (!hasAnyErrors) {
-        submission.status = 'draft';
-        submission.rejectionDetails = undefined;
-        submission.reviewedAt = undefined;
-      }
-      
-      await submission.save();
-    }
-  } catch (error) {
-    // Silently handle - rejection clearing is best-effort
   }
 }
 

@@ -20,6 +20,7 @@ class DocumentsRepository {
     required File file,
   }) async {
     try {
+      final sessionVersion = _apiClient.sessionVersion;
       // Create multipart form data
       final formData = FormData.fromMap({
         'type': type,
@@ -33,7 +34,7 @@ class DocumentsRepository {
       final response = await _apiClient.dio.post(
         '/user/documents',
         data: formData,
-        options: Options(extra: {'filePath': file.path}),
+        options: Options(extra: {'sessionVersion': sessionVersion}),
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {

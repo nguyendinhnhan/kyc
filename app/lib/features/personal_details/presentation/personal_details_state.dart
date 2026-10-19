@@ -1,11 +1,12 @@
+import '../../auth/presentation/auth_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/personal_details_repository.dart';
 import '../domain/personal_details.dart';
 import '../../submission/presentation/submission_state.dart';
-import '../../submission/domain/submission.dart';
 
 final personalDetailsStateProvider =
     StateNotifierProvider<PersonalDetailsNotifier, PersonalDetailsState>((ref) {
+      ref.watch(authStateProvider.select((state) => state.user?.id));
       final repository = ref.watch(personalDetailsRepositoryProvider);
       return PersonalDetailsNotifier(repository, ref);
     });
@@ -51,6 +52,8 @@ class PersonalDetailsNotifier extends StateNotifier<PersonalDetailsState> {
 
     final result = await _repository.getPersonalDetails();
 
+    if (!mounted) return;
+
     if (result.isSuccess && result.personalDetails != null) {
       state = state.copyWith(
         isLoading: false,
@@ -84,6 +87,8 @@ class PersonalDetailsNotifier extends StateNotifier<PersonalDetailsState> {
       address: address,
     );
 
+    if (!mounted) return false;
+
     if (result.isSuccess && result.personalDetails != null) {
       state = state.copyWith(
         isLoading: false,
@@ -91,8 +96,8 @@ class PersonalDetailsNotifier extends StateNotifier<PersonalDetailsState> {
         isSaved: true,
       );
 
-      // Clear personal details rejection from submission state
-      _clearPersonalDetailsRejection();
+      // Refresh server-owned workflow status after the edit.
+      await _ref.read(submissionStateProvider.notifier).loadSubmission();
 
       return true;
     } else {
@@ -107,46 +112,5 @@ class PersonalDetailsNotifier extends StateNotifier<PersonalDetailsState> {
 
   void reset() {
     state = PersonalDetailsState();
-  }
-
-  void _clearPersonalDetailsRejection() async {
-    final submissionNotifier = _ref.read(submissionStateProvider.notifier);
-    final currentSubmission = submissionNotifier.state.submission;
-
-    if (currentSubmission?.rejectionDetails != null) {
-      final rejectionDetails = currentSubmission!.rejectionDetails!;
-
-      // Create new rejection details without personal details
-      final updatedRejection = RejectionDetails(
-        documents: rejectionDetails.documents,
-        selfie: rejectionDetails.selfie,
-        generalNotes: rejectionDetails.generalNotes,
-      );
-
-      // Check if all rejections are now cleared
-      final hasAnyErrors =
-          updatedRejection.hasPersonalDetailsErrors ||
-          updatedRejection.hasDocumentErrors ||
-          updatedRejection.hasSelfieErrors;
-
-      // If all errors are cleared, call backend to reset submission
-      if (!hasAnyErrors && currentSubmission.isRejected) {
-        await submissionNotifier.resetSubmission();
-      } else {
-        // Create updated submission with remaining errors
-        final updatedSubmission = Submission(
-          id: currentSubmission.id,
-          userId: currentSubmission.userId,
-          status: currentSubmission.status,
-          submittedAt: currentSubmission.submittedAt,
-          reviewedAt: currentSubmission.reviewedAt,
-          notes: currentSubmission.notes,
-          rejectionDetails: updatedRejection,
-        );
-
-        // Update submission state
-        submissionNotifier.updateSubmission(updatedSubmission);
-      }
-    }
   }
 }

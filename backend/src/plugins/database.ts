@@ -20,12 +20,13 @@ export class Database {
     }
 
     try {
-      await mongoose.connect(config.mongodb.uri);
+      await mongoose.connect(config.mongodb.uri, { serverSelectionTimeoutMS: 10000 });
+      await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
       this.connected = true;
       console.log('✅ MongoDB connected successfully');
 
-      mongoose.connection.on('error', (error) => {
-        console.error('❌ MongoDB connection error:', error);
+      mongoose.connection.on('error', () => {
+        console.error('MongoDB connection error');
         this.connected = false;
       });
 
@@ -34,7 +35,7 @@ export class Database {
         this.connected = false;
       });
     } catch (error) {
-      console.error('❌ Failed to connect to MongoDB:', error);
+      console.error('MongoDB connection failed');
       throw error;
     }
   }

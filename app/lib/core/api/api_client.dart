@@ -4,188 +4,128 @@ import '../config/app_config.dart';
 import '../storage/token_storage.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
-  final tokenStorage = ref.watch(tokenStorageProvider);
-  return ApiClient(tokenStorage);
+  return ApiClient(ref.watch(tokenStorageProvider));
 });
 
 class ApiClient {
-  late final Dio _dio;
-  late final Dio
-  _refreshDio; // Separate Dio for refresh to avoid interceptor loop
   final TokenStorage _tokenStorage;
-  bool _isRefreshing = false;
-  _RefreshLock? _refreshLock;
+  late final Dio _dio;
+  late final Dio _refreshDio;
+  Future<bool>? _refreshFuture;
+  int _sessionVersion = 0;
 
-  ApiClient(this._tokenStorage) {
-    print('🔵 Initializing API Client with base URL: ${AppConfig.apiBaseUrl}');
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: AppConfig.apiBaseUrl,
-        connectTimeout: Duration(milliseconds: AppConfig.apiConnectTimeout),
-        receiveTimeout: Duration(milliseconds: AppConfig.apiReceiveTimeout),
-        headers: {'Content-Type': 'application/json'},
-      ),
+  ApiClient(this._tokenStorage, {Dio? dio, Dio? refreshDio}) {
+    BaseOptions options() => BaseOptions(
+      baseUrl: AppConfig.apiBaseUrl,
+      connectTimeout: Duration(milliseconds: AppConfig.apiConnectTimeout),
+      receiveTimeout: Duration(milliseconds: AppConfig.apiReceiveTimeout),
+      headers: {'Content-Type': 'application/json'},
     );
-
-    // Separate Dio instance for refresh token calls (no interceptor)
-    _refreshDio = Dio(
-      BaseOptions(
-        baseUrl: AppConfig.apiBaseUrl,
-        connectTimeout: Duration(milliseconds: AppConfig.apiConnectTimeout),
-        receiveTimeout: Duration(milliseconds: AppConfig.apiReceiveTimeout),
-        headers: {'Content-Type': 'application/json'},
-      ),
-    );
-
+    _dio = dio ?? Dio(options());
+    _refreshDio = refreshDio ?? Dio(options());
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final token = await _tokenStorage.getAccessToken();
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
+        onRequest: (request, handler) async {
+          request.extra.putIfAbsent('sessionVersion', () => _sessionVersion);
+          if (request.extra['sessionVersion'] != _sessionVersion) {
+            return handler.reject(
+              DioException(
+                requestOptions: request,
+                type: DioExceptionType.cancel,
+              ),
+            );
           }
-          return handler.next(options);
+          final token = await _tokenStorage.getAccessToken();
+          if (request.extra['sessionVersion'] != _sessionVersion) {
+            return handler.reject(
+              DioException(
+                requestOptions: request,
+                type: DioExceptionType.cancel,
+              ),
+            );
+          }
+          if (token != null && !request.path.startsWith('/auth/')) {
+            request.headers['Authorization'] = 'Bearer $token';
+          } else if (token != null && request.path == '/auth/logout') {
+            request.headers['Authorization'] = 'Bearer $token';
+          }
+          handler.next(request);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode == 401) {
-            // For multipart requests, refresh token and recreate FormData
-            // from the saved file path (original stream was consumed)
-            final isMultipart = error.requestOptions.data is FormData;
-            if (isMultipart) {
-              final filePath =
-                  error.requestOptions.extra['filePath'] as String?;
-              if (filePath == null) {
-                return handler.next(error);
-              }
-
-              final refreshed = await _refreshToken();
-              if (!refreshed) {
-                return handler.next(error);
-              }
-
-              final token = await _tokenStorage.getAccessToken();
-              // Recreate FormData from the saved file
-              final newFormData = FormData.fromMap({
-                'file': await MultipartFile.fromFile(
-                  filePath,
-                  filename: filePath.split('/').last,
-                ),
-              });
-              // Copy other fields from original request (e.g., type, documentNumber)
-              if (error.requestOptions.data is FormData) {
-                final originalFields =
-                    (error.requestOptions.data as FormData).fields;
-                for (final entry in originalFields) {
-                  newFormData.fields.add(MapEntry(entry.key, entry.value));
-                }
-              }
-
-              final retryOptions = RequestOptions(
-                method: error.requestOptions.method,
-                path: error.requestOptions.path,
-                headers: {
-                  ...error.requestOptions.headers,
-                  'Authorization': 'Bearer $token',
-                },
-                data: newFormData,
-                extra: error.requestOptions.extra,
-              );
-              // Use _refreshDio to avoid re-triggering the interceptor
-              final response = await _refreshDio.fetch(retryOptions);
-              return handler.resolve(response);
-            }
-
-            // Token expired or invalid - try to refresh
-            final refreshed = await _refreshToken();
-            if (refreshed) {
-              // Retry the request with new token
-              final token = await _tokenStorage.getAccessToken();
-              error.requestOptions.headers['Authorization'] = 'Bearer $token';
-              final response = await _dio.fetch(error.requestOptions);
-              return handler.resolve(response);
-            }
+          final request = error.requestOptions;
+          if (error.response?.statusCode != 401 ||
+              request.path.startsWith('/auth/') ||
+              request.extra['retried'] == true ||
+              request.extra['sessionVersion'] != _sessionVersion) {
+            return handler.next(error);
           }
-          return handler.next(error);
+          try {
+            // A concurrent response may arrive after another request already rotated.
+            var token = await _tokenStorage.getAccessToken();
+            if (request.headers['Authorization'] == 'Bearer $token') {
+              if (!await _refreshToken()) return handler.next(error);
+              token = await _tokenStorage.getAccessToken();
+            }
+            if (token == null ||
+                request.extra['sessionVersion'] != _sessionVersion) {
+              return handler.next(error);
+            }
+            request.extra['retried'] = true;
+            request.headers['Authorization'] = 'Bearer $token';
+            if (request.data is FormData) {
+              request.data = (request.data as FormData).clone();
+            }
+            final response = await _dio.fetch<dynamic>(request);
+            handler.resolve(response);
+          } on DioException catch (retryError) {
+            handler.next(retryError);
+          } catch (_) {
+            handler.next(error);
+          }
         },
       ),
     );
   }
 
   Future<bool> _refreshToken() async {
-    // Prevent concurrent refresh attempts
-    if (_isRefreshing) {
-      // Wait for the ongoing refresh to complete
-      await _refreshLock?.completer.future;
-      return _refreshLock?.success ?? false;
+    final ongoing = _refreshFuture;
+    if (ongoing != null) return ongoing;
+    final future = _performRefresh(_sessionVersion);
+    _refreshFuture = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_refreshFuture, future)) _refreshFuture = null;
     }
+  }
 
-    _isRefreshing = true;
-    final lock = _RefreshLock();
-    _refreshLock = lock;
-
+  Future<bool> _performRefresh(int version) async {
     try {
       final refreshToken = await _tokenStorage.getRefreshToken();
-      if (refreshToken == null) {
-        lock.complete(false);
-        return false;
-      }
-
-      // Use separate Dio instance to avoid interceptor loop
-      final response = await _refreshDio.post(
+      if (refreshToken == null) return false;
+      final response = await _refreshDio.post<dynamic>(
         '/auth/refresh',
         data: {'refreshToken': refreshToken},
       );
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        await _tokenStorage.saveTokens(
-          accessToken: data['accessToken'],
-          refreshToken: data['refreshToken'],
-        );
-        lock.complete(true);
-        return true;
+      if (response.statusCode != 200 || version != _sessionVersion) {
+        return false;
       }
-      lock.complete(false);
+      await _tokenStorage.saveTokens(
+        accessToken: response.data['accessToken'],
+        refreshToken: response.data['refreshToken'],
+      );
+      return version == _sessionVersion;
+    } catch (_) {
       return false;
-    } catch (e) {
-      lock.complete(false);
-      return false;
-    } finally {
-      _isRefreshing = false;
     }
   }
+
+  Future<void> endSession() async {
+    _sessionVersion++;
+    await _refreshFuture;
+  }
+
+  int get sessionVersion => _sessionVersion;
 
   Dio get dio => _dio;
-}
-
-class _RefreshLock {
-  final completer = _Completer<bool>();
-  bool? success;
-
-  void complete(bool result) {
-    success = result;
-    completer.complete(result);
-  }
-}
-
-class _Completer<T> {
-  T? _value;
-  bool _isCompleted = false;
-  final List<void Function(T)> _callbacks = [];
-
-  void complete(T value) {
-    if (_isCompleted) return;
-    _isCompleted = true;
-    _value = value;
-    for (final callback in _callbacks) {
-      callback(value);
-    }
-  }
-
-  Future<T> get future {
-    if (_isCompleted) return Future.value(_value);
-    final completer = _Completer<T>();
-    _callbacks.add(completer.complete);
-    return completer.future;
-  }
 }

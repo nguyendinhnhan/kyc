@@ -6,14 +6,15 @@ import 'app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load environment variables based on flavor
-  // For now, default to development
-  await dotenv.load(fileName: '.env.development');
-  
-  runApp(
-    const ProviderScope(
-      child: KycApp(),
-    ),
+
+  const environment = String.fromEnvironment(
+    'APP_ENV',
+    defaultValue: 'development',
   );
+  if (!['development', 'staging', 'production'].contains(environment)) {
+    throw ArgumentError('Unsupported APP_ENV');
+  }
+  await dotenv.load(fileName: '.env.$environment');
+
+  runApp(const ProviderScope(child: KycApp()));
 }

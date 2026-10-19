@@ -4,13 +4,10 @@ import { PersonalDetails } from '../models/PersonalDetails';
 import { DocumentModel } from '../models/Document';
 import { SelfieModel } from '../models/Selfie';
 
-export async function listSubmissionsHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function listSubmissionsHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const { status, page = '1', limit = '20' } = request.query as any;
-    
+
     const query: any = {};
     if (status) {
       query.status = status;
@@ -21,10 +18,7 @@ export async function listSubmissionsHandler(
     const skip = (pageNum - 1) * limitNum;
 
     const [submissions, total] = await Promise.all([
-      SubmissionModel.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum),
+      SubmissionModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
       SubmissionModel.countDocuments(query),
     ]);
 
@@ -38,15 +32,12 @@ export async function listSubmissionsHandler(
       },
     });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Failed to list submissions' });
   }
 }
 
-export async function getSubmissionDetailsHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function getSubmissionDetailsHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const { id } = request.params as { id: string };
 
@@ -68,15 +59,12 @@ export async function getSubmissionDetailsHandler(
       selfie,
     });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Failed to get submission details' });
   }
 }
 
-export async function approveSubmissionHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function approveSubmissionHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const { id } = request.params as { id: string };
     const adminId = (request as any).user.userId;
@@ -87,47 +75,52 @@ export async function approveSubmissionHandler(
       return reply.status(404).send({ error: 'Submission not found' });
     }
 
-    submission.status = 'approved';
-    submission.reviewedAt = new Date();
-    submission.reviewedBy = adminId;
-    if (notes) {
-      submission.notes = notes;
-    }
-    await submission.save();
+    const updated = await SubmissionModel.findOneAndUpdate(
+      { _id: id, status: { $in: ['submitted', 'under_review'] } },
+      {
+        $set: {
+          status: 'approved',
+          reviewedAt: new Date(),
+          reviewedBy: adminId,
+          ...(notes ? { notes } : {}),
+        },
+        $unset: { rejectionDetails: 1 },
+      },
+      { new: true }
+    );
+    if (!updated)
+      return reply.status(409).send({ error: 'Only pending applications can be reviewed' });
 
     return reply.status(200).send({
       message: 'Submission approved successfully',
-      submission,
+      submission: updated,
     });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Failed to approve submission' });
   }
 }
 
-export async function rejectSubmissionHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function rejectSubmissionHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const { id } = request.params as { id: string };
     const adminId = (request as any).user.userId;
-    const { rejectionDetails, notes } = request.body as { 
+    const { rejectionDetails, notes } = request.body as {
       rejectionDetails: IRejectionDetails;
       notes?: string;
     };
 
     // Validate that at least one rejection detail is provided
-    const hasDetails = rejectionDetails && (
-      rejectionDetails.personalDetails ||
-      rejectionDetails.documents ||
-      rejectionDetails.selfie ||
-      rejectionDetails.generalNotes
-    );
+    const hasDetails =
+      rejectionDetails &&
+      (rejectionDetails.personalDetails ||
+        rejectionDetails.documents ||
+        rejectionDetails.selfie ||
+        rejectionDetails.generalNotes);
 
     if (!hasDetails) {
-      return reply.status(400).send({ 
-        error: 'At least one rejection detail is required' 
+      return reply.status(400).send({
+        error: 'At least one rejection detail is required',
       });
     }
 
@@ -136,29 +129,33 @@ export async function rejectSubmissionHandler(
       return reply.status(404).send({ error: 'Submission not found' });
     }
 
-    submission.status = 'rejected';
-    submission.reviewedAt = new Date();
-    submission.reviewedBy = adminId;
-    submission.rejectionDetails = rejectionDetails;
-    if (notes) {
-      submission.notes = notes;
-    }
-    await submission.save();
+    const updated = await SubmissionModel.findOneAndUpdate(
+      { _id: id, status: { $in: ['submitted', 'under_review'] } },
+      {
+        $set: {
+          status: 'rejected',
+          reviewedAt: new Date(),
+          reviewedBy: adminId,
+          rejectionDetails,
+          ...(notes ? { notes } : {}),
+        },
+      },
+      { new: true }
+    );
+    if (!updated)
+      return reply.status(409).send({ error: 'Only pending applications can be reviewed' });
 
     return reply.status(200).send({
       message: 'Submission rejected successfully',
-      submission,
+      submission: updated,
     });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Failed to reject submission' });
   }
 }
 
-export async function getStatsHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function getStatsHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const [total, submitted, underReview, approved, rejected] = await Promise.all([
       SubmissionModel.countDocuments(),
@@ -178,7 +175,7 @@ export async function getStatsHandler(
       },
     });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Failed to get stats' });
   }
 }

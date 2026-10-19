@@ -60,6 +60,12 @@ const documentSchema = new Schema<IDocument>(
   },
   {
     timestamps: true,
+    toJSON: {
+      transform(_doc, result) {
+        delete (result as Partial<typeof result>).filePath;
+        return result;
+      },
+    },
   }
 );
 

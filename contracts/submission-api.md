@@ -197,3 +197,25 @@ Without submission:
 - All requirements must be met before submission is allowed
 - Submission is a one-way process (cannot be undone by user)
 - Reviewer can change status and add notes through admin interface
+
+## Interview-readiness corrections (2026-10-18)
+
+The server owns transitions: drafts and rejected applications can be explicitly submitted;
+submitted/under-review requests return the current record without changing its timestamp;
+approved applications reject a new submission (409). Editing submitted, under-review,
+or approved data returns 409. Correcting a rejected section clears only that section's
+feedback and leaves status rejected until the user explicitly resubmits. Admin decisions
+atomically require submitted/under_review; competing decisions return 409.
+
+`Idempotency-Key` is optional for compatibility with the submitted client, and recommended
+for every submission. Keys contain 8–128 letters, digits, underscores or hyphens. A key is
+scoped to the authenticated owner and empty submission operation. Successful keys persist
+with the submission; replay returns its current representation without another transition,
+even if a reviewer has since changed the status. GET /user/submission reconciles a lost
+response. A new logical resubmission uses a new key. Flutter persists an outstanding key
+in secure storage until a successful response or logout. DELETE /user/submission remains
+as a compatibility alias for explicit submission, using the same rules.
+
+Image writes do not automatically retry timeouts. Reconcile metadata through the protected
+GET endpoints before replacing an uncertain upload. Only a 401 received before the handler
+runs is eligible for one authenticated replay.

@@ -1,3 +1,4 @@
+import '../../../core/storage/token_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
@@ -5,19 +6,32 @@ import '../domain/submission.dart';
 
 final submissionRepositoryProvider = Provider<SubmissionRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
-  return SubmissionRepository(apiClient);
+  return SubmissionRepository(apiClient, ref.watch(tokenStorageProvider));
 });
 
 class SubmissionRepository {
   final ApiClient _apiClient;
 
-  SubmissionRepository(this._apiClient);
+  final TokenStorage _storage;
+
+  SubmissionRepository(this._apiClient, [TokenStorage? storage])
+    : _storage = storage ?? TokenStorage();
 
   Future<SubmissionResult> submitKYC() async {
     try {
-      final response = await _apiClient.dio.post('/user/submit', data: {});
+      final version = _apiClient.sessionVersion;
+      final key = await _storage.pendingSubmissionKey();
+      final response = await _apiClient.dio.post(
+        '/user/submit',
+        data: {},
+        options: Options(
+          headers: {'Idempotency-Key': key},
+          extra: {'sessionVersion': version},
+        ),
+      );
 
       if (response.statusCode == 200) {
+        await _storage.clearSubmissionKey();
         final submission = Submission.fromJson(response.data['submission']);
         return SubmissionResult.success(
           message: response.data['message'] ?? 'KYC submitted successfully',
@@ -74,35 +88,7 @@ class SubmissionRepository {
     }
   }
 
-  Future<SubmissionResult> resetSubmission() async {
-    try {
-      final response = await _apiClient.dio.delete(
-        '/user/submission',
-        data: {},
-      );
-
-      if (response.statusCode == 200) {
-        final submission = Submission.fromJson(response.data['submission']);
-        return SubmissionResult.success(
-          message:
-              response.data['message'] ?? 'Submission resubmitted successfully',
-          submission: submission,
-        );
-      }
-
-      return SubmissionResult.error(
-        message: response.data['error']?.toString() ?? 'Failed to resubmit',
-      );
-    } on DioException catch (e) {
-      final data = e.response?.data;
-      final errorMsg = data is Map
-          ? (data['error']?.toString() ?? 'Failed to resubmit')
-          : 'Failed to resubmit';
-      return SubmissionResult.error(message: errorMsg);
-    } catch (e) {
-      return SubmissionResult.error(message: 'An unexpected error occurred');
-    }
-  }
+  Future<SubmissionResult> resetSubmission() => submitKYC();
 }
 
 class SubmissionResult {

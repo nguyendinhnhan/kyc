@@ -1,67 +1,33 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { SelfieModel } from '../models/Selfie';
-import { SubmissionModel } from '../models/Submission';
-import fs from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { clearRejectionField } from '../services/workflow';
+import { InvalidImage, storeImage, removeReplacedImage, readImage } from '../services/imageStorage';
 
-export async function uploadSelfieHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function uploadSelfieHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const userId = (request as any).user.userId;
 
     // Get the file from multipart request
     const file = await request.file();
-    
+
     if (!file) {
       return reply.status(400).send({ error: 'No file uploaded' });
     }
 
-    // Validate file type
-    const mimeType = file.mimetype;
-    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(mimeType)) {
-      return reply.status(400).send({ error: 'File must be an image (JPEG, PNG, or JPG)' });
-    }
-
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    // Read file buffer
     const buffer = await file.toBuffer();
-
-    // Determine file extension
-    let fileExtension = '.jpg';
-    if (mimeType === 'image/png') {
-      fileExtension = '.png';
-    }
-
-    // Save file with unique name
-    const uniqueFilename = `${uuidv4()}${fileExtension}`;
-    const filePath = path.join(uploadsDir, uniqueFilename);
-    fs.writeFileSync(filePath, buffer);
-
-    // Update or create selfie record (upsert)
-    const selfie = await SelfieModel.findOneAndUpdate(
+    const stored = await storeImage(buffer);
+    const previous = await SelfieModel.findOneAndUpdate(
       { userId },
       {
-        userId,
-        filePath,
-        fileName: file.filename,
-        mimeType,
-        fileSize: buffer.length,
-        uploadedAt: new Date(),
-        status: 'pending',
+        $set: { ...stored, status: 'pending' },
+        $setOnInsert: { userId },
       },
-      {
-        new: true,
-        upsert: true,
-      }
+      { upsert: true, new: false, runValidators: true }
     );
+    const selfie = await SelfieModel.findOne({ userId }).select('-filePath');
+    if (!(await removeReplacedImage(previous?.filePath))) {
+      request.log.warn({ code: 'IMAGE_CLEANUP_PENDING' }, 'Image cleanup pending');
+    }
 
     // Clear selfie from submission rejection details
     await clearRejectionField(userId, 'selfie');
@@ -71,15 +37,16 @@ export async function uploadSelfieHandler(
       selfie,
     });
   } catch (error) {
-    request.log.error(error);
+    if (error instanceof InvalidImage) return reply.status(400).send({ error: error.message });
+    if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 413) {
+      return reply.status(413).send({ error: 'Image exceeds 10 MiB' });
+    }
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Failed to upload selfie' });
   }
 }
 
-export async function getSelfieHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function getSelfieHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const userId = (request as any).user.userId;
 
@@ -89,15 +56,12 @@ export async function getSelfieHandler(
       selfie,
     });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Failed to retrieve selfie' });
   }
 }
 
-export async function getSelfieImageHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function getSelfieImageHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const userId = (request as any).user.userId;
 
@@ -107,54 +71,15 @@ export async function getSelfieImageHandler(
       return reply.status(404).send({ error: 'Selfie not found' });
     }
 
-    if (!fs.existsSync(selfie.filePath)) {
-      return reply.status(404).send({ error: 'Image file not found' });
-    }
-
-    const imageBuffer = fs.readFileSync(selfie.filePath);
+    const imageBuffer = await readImage(selfie.filePath).catch(() => null);
+    if (!imageBuffer) return reply.status(404).send({ error: 'Image file not found' });
+    reply.header('Cache-Control', 'no-store');
+    reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Content-Type', selfie.mimeType);
     reply.header('Content-Length', imageBuffer.length);
     return reply.status(200).send(imageBuffer);
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({ error: 'Failed to retrieve selfie image' });
-  }
-}
-
-// Helper function to clear a specific field from rejection details
-async function clearRejectionField(
-  userId: string,
-  field: 'personalDetails' | 'documents' | 'selfie'
-) {
-  try {
-    const submission = await SubmissionModel.findOne({ userId });
-    
-    if (submission && submission.rejectionDetails) {
-      // Clear the specific field
-      if (field === 'personalDetails') {
-        submission.rejectionDetails.personalDetails = undefined;
-      } else if (field === 'documents') {
-        submission.rejectionDetails.documents = undefined;
-      } else if (field === 'selfie') {
-        submission.rejectionDetails.selfie = undefined;
-      }
-      
-      // Check if all rejection fields are now empty
-      const hasAnyErrors = 
-        submission.rejectionDetails.personalDetails ||
-        submission.rejectionDetails.documents ||
-        submission.rejectionDetails.selfie;
-      
-      // If no errors remain, reset the submission to draft
-      if (!hasAnyErrors) {
-        submission.status = 'draft';
-        submission.rejectionDetails = undefined;
-        submission.reviewedAt = undefined;
-      }
-      
-      await submission.save();
-    }
-  } catch (error) {
-    // Silently handle - rejection clearing is best-effort
   }
 }

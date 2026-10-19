@@ -91,6 +91,7 @@ class AuthRepository {
     try {
       final refreshToken = await _tokenStorage.getRefreshToken();
       if (refreshToken == null) {
+        await _apiClient.endSession();
         await _tokenStorage.clearTokens();
         return AuthResult.success(message: 'Logged out successfully');
       }
@@ -100,6 +101,7 @@ class AuthRepository {
         data: {'refreshToken': refreshToken},
       );
 
+      await _apiClient.endSession();
       await _tokenStorage.clearTokens();
 
       if (response.statusCode == 200) {
@@ -113,11 +115,13 @@ class AuthRepository {
       );
     } on DioException catch (e) {
       // Even if API call fails, clear tokens locally
+      await _apiClient.endSession();
       await _tokenStorage.clearTokens();
       return AuthResult.error(
         message: e.response?.data['error'] ?? 'Logout failed',
       );
     } catch (e) {
+      await _apiClient.endSession();
       await _tokenStorage.clearTokens();
       return AuthResult.error(message: 'An unexpected error occurred');
     }

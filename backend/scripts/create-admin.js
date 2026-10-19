@@ -101,9 +101,8 @@ async function createAdmin() {
     await adminUser.save();
 
     console.log('\n✓ Admin user created successfully!');
-    console.log('\nAdmin credentials:');
+    console.log('\nAdmin account:');
     console.log(`  Email: ${email}`);
-    console.log(`  Password: ${password}`);
     console.log(`  Role: admin`);
     console.log('\nYou can now login with these credentials in Postman.');
 

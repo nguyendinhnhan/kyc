@@ -44,7 +44,7 @@ describe('POST /auth/login', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('message', 'Login successful');
     expect(body).toHaveProperty('accessToken');
@@ -79,7 +79,7 @@ describe('POST /auth/login', () => {
     });
 
     expect(response.statusCode).toBe(401);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error', 'Invalid email or password');
   });
@@ -95,7 +95,7 @@ describe('POST /auth/login', () => {
     });
 
     expect(response.statusCode).toBe(401);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error', 'Invalid email or password');
   });
@@ -111,7 +111,7 @@ describe('POST /auth/login', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error');
   });

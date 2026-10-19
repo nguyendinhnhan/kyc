@@ -23,6 +23,7 @@ export interface ISubmission extends Document {
   userId: Types.ObjectId;
   status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
   submittedAt?: Date;
+  attemptKeys: string[];
   reviewedAt?: Date;
   reviewedBy?: Types.ObjectId;
   notes?: string;
@@ -42,6 +43,7 @@ const submissionSchema = new Schema<ISubmission>(
       enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected'],
       default: 'draft',
     },
+    attemptKeys: { type: [String], default: [], select: false },
     submittedAt: {
       type: Date,
     },
