@@ -1,12 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 
-export async function requireAdmin(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
   try {
     const user = (request as any).user;
-    
+
     if (!user) {
       return reply.status(401).send({
         error: 'Authentication required',
@@ -19,7 +16,7 @@ export async function requireAdmin(
       });
     }
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(403).send({
       error: 'Forbidden: Admin access required',
     });

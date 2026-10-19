@@ -33,7 +33,7 @@ describe('POST /auth/register', () => {
     });
 
     expect(response.statusCode).toBe(201);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('message', 'User registered successfully');
     expect(body).toHaveProperty('user');
@@ -67,7 +67,7 @@ describe('POST /auth/register', () => {
     });
 
     expect(response.statusCode).toBe(409);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error', 'Email already registered');
   });
@@ -84,7 +84,7 @@ describe('POST /auth/register', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error');
   });
@@ -101,7 +101,7 @@ describe('POST /auth/register', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error');
   });
@@ -118,7 +118,7 @@ describe('POST /auth/register', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error');
   });

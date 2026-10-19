@@ -20,7 +20,7 @@ describe('POST /auth/refresh', () => {
 
   beforeEach(async () => {
     await User.deleteMany({});
-    
+
     // Create a test user and get refresh token
     const registerResponse = await app.inject({
       method: 'POST',
@@ -55,7 +55,7 @@ describe('POST /auth/refresh', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('message', 'Token refreshed successfully');
     expect(body).toHaveProperty('accessToken');
@@ -72,7 +72,7 @@ describe('POST /auth/refresh', () => {
     });
 
     expect(response.statusCode).toBe(401);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error', 'Invalid refresh token');
   });
@@ -100,7 +100,7 @@ describe('POST /auth/refresh', () => {
     });
 
     expect(response.statusCode).toBe(401);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error', 'Invalid refresh token');
   });
@@ -115,7 +115,7 @@ describe('POST /auth/refresh', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error');
   });

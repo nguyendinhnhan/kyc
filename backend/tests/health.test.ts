@@ -1,25 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import Fastify, { FastifyInstance } from 'fastify';
+import { FastifyInstance } from 'fastify';
+import { buildApp } from '../src/server';
+import { database } from '../src/plugins/database';
 
 describe('Health Check Endpoint', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = Fastify();
-    
-    app.get('/health', async () => {
-      return {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        database: 'connected',
-      };
-    });
-
+    app = await buildApp();
     await app.ready();
   });
 
   afterAll(async () => {
     await app.close();
+    await database.disconnect();
   });
 
   it('should return 200 status', async () => {

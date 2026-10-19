@@ -1,6 +1,28 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ quiet: true });
+
+const environment = process.env.NODE_ENV || 'development';
+if (!['development', 'test'].includes(environment)) {
+  const access = process.env.JWT_SECRET;
+  const refresh = process.env.JWT_REFRESH_SECRET;
+  if (
+    !access ||
+    !refresh ||
+    access.length < 32 ||
+    refresh.length < 32 ||
+    access === refresh ||
+    access.includes('change-me') ||
+    refresh.includes('change-me')
+  ) {
+    throw new Error(
+      'Distinct JWT signing secrets of at least 32 characters are required outside local development'
+    );
+  }
+}
+if (process.env.STORAGE_TYPE && process.env.STORAGE_TYPE !== 'local') {
+  throw new Error('Only local development image storage is implemented');
+}
 
 export const config = {
   port: parseInt(process.env.PORT || '3000', 10),

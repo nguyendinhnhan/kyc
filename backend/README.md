@@ -1,197 +1,67 @@
-# KYC Backend
+# KYC backend
 
-Node.js + Fastify backend for KYC onboarding.
-
-## Setup
-
-See [main README](../README.md) for prerequisites and overall project setup.
-
-## Quick Start
-
-### Option 1: Local MongoDB with Docker (Recommended for Testing)
+Fastify + TypeScript + Mongoose. Run commands from `backend/`.
 
 ```bash
-# Install dependencies
-npm install
-
-# Start MongoDB with Docker
-docker-compose up -d
-
-# Both MongoDB AND MongoDB Express start for debugging
-# docker-compose --profile tools up -d
-# Then open your browser: http://localhost:8081
-
-# Create environment file (already configured for local MongoDB)
+npm ci
+# Only create .env if it does not already exist:
 cp .env.example .env
-
-# Run development server
+# Set local MongoDB credentials and the matching MONGODB_URI with authSource=admin.
+docker compose up -d mongodb
+docker compose ps mongodb
 npm run dev
-
-# Run tests
-npm test
 ```
 
-### Option 2: MongoDB Atlas (Cloud)
+Preserve an existing `.env`; never overwrite it as a routine start step. Docker binds
+MongoDB to 127.0.0.1:27017 and retains data in its named volume. `docker compose stop mongodb`
+stops it without deleting data. Optional Mongo Express requires the `tools` profile.
 
 ```bash
-# Install dependencies
-npm install
-
-# Create environment file
-cp .env.example .env
-
-# Edit .env and replace MONGODB_URI with your Atlas connection string:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/kyc
-
-# Run development server
-npm run dev
-
-# Run tests
-npm test
-```
-
-### Common Commands
-
-```bash
-# Test health endpoint
-curl http://localhost:3000/health
-
-# Build for production
 npm run build
-
-# View logs
-docker-compose logs -f mongodb
-
-# Stop MongoDB
-docker-compose down
-
-# Stop MongoDB and delete data
-docker-compose down -v
-```
-
-## Architecture
-
-- **Framework**: Fastify
-- **Language**: TypeScript
-- **Database**: MongoDB (Local via Docker or MongoDB Atlas)
-- **Authentication**: JWT with refresh token rotation
-- **Pattern**: Layered architecture (controllers → services → repositories)
-
-## API Endpoints
-
-### Authentication
-- `POST /api/v1/auth/register` - Register new user
-- `POST /api/v1/auth/login` - Login
-- `POST /api/v1/auth/refresh` - Refresh access token
-- `POST /api/v1/auth/logout` - Logout
-
-### Personal Details
-- `GET /api/v1/personal-details` - Get personal details
-- `PUT /api/v1/personal-details` - Update personal details
-
-### Document Capture
-- `POST /api/v1/documents/upload` - Upload ID document
-- `GET /api/v1/documents/:id` - Get document metadata
-
-### Selfie Capture
-- `POST /api/v1/selfie/upload` - Upload selfie
-- `GET /api/v1/selfie/:id` - Get selfie metadata
-
-### Submission
-- `POST /api/v1/submissions` - Submit KYC application
-- `GET /api/v1/submissions/:id` - Get submission status
-
-### Verification Status
-- `GET /api/v1/verification/status` - Get verification status
-
-## Environment Variables
-
-Copy `.env.example` to `.env` and configure:
-
-```bash
-# Server
-PORT=3000
-NODE_ENV=development
-
-# Database
-MONGODB_URI=mongodb+srv://...
-
-# JWT
-JWT_SECRET=your-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret
-JWT_ACCESS_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
-
-# Storage (production)
-STORAGE_TYPE=local  # or 's3'
-S3_BUCKET=your-bucket
-S3_REGION=your-region
-S3_ACCESS_KEY=your-access-key
-S3_SECRET_KEY=your-secret-key
-```
-
-## Testing
-
-```bash
-# Unit tests
-npm test
-
-# Integration tests
-npm run test:integration
-
-# Coverage
-npm run test:coverage
-```
-
-## Database
-
-MongoDB Atlas is used for persistence. Collections:
-- `users` - User accounts
-- `refresh_tokens` - Refresh tokens
-- `personal_details` - User identity information
-- `documents` - ID document metadata
-- `selfies` - Selfie metadata
-- `submissions` - KYC submissions
-- `verification_status` - Verification state
-
-## Image Storage
-
-### Development
-Images stored locally in `uploads/` directory.
-
-### Production
-S3-compatible storage (AWS S3, Cloudflare R2, or MinIO).
-
-Configure via environment variables:
-- `STORAGE_TYPE`: 'local' or 's3'
-- `S3_*`: S3 configuration (when using S3)
-
-## Security
-
-- Password hashing with bcrypt
-- JWT authentication with refresh token rotation
-- Rate limiting on sensitive endpoints
-- Input validation on all endpoints
-- Ownership checks on all resources
-- No PII in logs
-- HTTPS required (except local development)
-
-## Build
-
-```bash
-# Compile TypeScript to JavaScript
-npm run build
-
-# Start production server
 npm start
-```
-
-## Linting
-
-```bash
-# Check code
+curl http://localhost:3000/health
+npm test -- --run
 npm run lint
-
-# Fix code
-npm run lint:fix
+npm run format:check
 ```
+
+Tests derive local credentials from `.env`, replace the database name with
+`kyc_test_<worker-process-id>`, and use temporary upload directories. They refuse remote
+MongoDB hosts and clean up their own database after integration tests. Your demo database
+and upload directory are not used. MongoDB must be running for the integration suite.
+
+## Implemented endpoints
+
+- POST `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`
+- GET/POST `/user/personal-details`
+- GET/POST `/user/documents`; GET `/user/documents/:id/image`
+- GET/POST `/user/selfie`; GET `/user/selfie/image`
+- POST `/user/submit`; GET `/user/submission`
+- DELETE `/user/submission`: compatibility alias for explicit resubmission
+- GET `/admin/submissions`, `/admin/submissions/:id`, `/admin/stats`
+- POST `/admin/submissions/:id/approve`, `/admin/submissions/:id/reject`
+
+All `/user` routes require an active authenticated session. Admin routes also require
+an admin role. See [contracts](../contracts/) for request/response details, especially
+[session and upload corrections](../contracts/session-and-upload-corrections.md).
+
+## Boundaries and limitations
+
+Routes translate HTTP and access Mongoose models. Shared services handle sessions,
+workflow edit checks/rejection updates, and private image storage; this is a small layered
+backend, not a generated controller/service/repository framework. Schemas validate auth
+and personal details. The TypeScript build uses Node16 module resolution with CommonJS;
+UUID generation uses Node crypto rather than an ESM-only dependency.
+
+`STORAGE_TYPE=local` and `UPLOAD_DIR` select private local storage. Other storage types
+fail explicitly; S3 is planned, not implemented. Images are decoded/re-encoded as JPEG/PNG,
+limited to 10 MiB input and 24 million pixels, and stored with private permissions.
+
+Outside development/test, distinct signing secrets of at least 32 characters are required.
+Use TLS at a reverse proxy outside documented laptop development. Existing stateless JWTs
+from the submitted version require a fresh login. Refresh-token loss during rotation can
+require re-login; invalid credentials are never retried automatically.
+
+The demo does not establish production encryption, retention/abandonment cleanup, or
+multi-document transactional isolation between an edit and simultaneous submission.
+Use synthetic identity data. See [interview guide](../docs/interview-demo.md).

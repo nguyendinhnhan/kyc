@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { buildApp } from '../../src/server';
 import { User } from '../../src/models/User';
@@ -28,7 +29,7 @@ describe('POST /user/submit', () => {
     await DocumentModel.deleteMany({});
     await SelfieModel.deleteMany({});
     await SubmissionModel.deleteMany({});
-    
+
     // Create a test user and get token
     await app.inject({
       method: 'POST',
@@ -67,7 +68,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/submit',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -82,7 +83,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/personal-details',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       payload: {
         dateOfBirth: '1990-01-01',
@@ -102,7 +103,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/submit',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -117,7 +118,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/personal-details',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       payload: {
         dateOfBirth: '1990-01-01',
@@ -134,7 +135,7 @@ describe('POST /user/submit', () => {
     });
 
     // Add document
-    const fakeImage = Buffer.from('fake-image-data');
+    const fakeImage = readFileSync('tests/fixtures/synthetic.jpg');
     const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
     const docBody = [
       `--${boundary}`,
@@ -158,7 +159,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/documents',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
       },
       payload: Buffer.from(docBody, 'binary'),
@@ -168,7 +169,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/submit',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -183,7 +184,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/personal-details',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       payload: {
         dateOfBirth: '1990-01-01',
@@ -200,7 +201,7 @@ describe('POST /user/submit', () => {
     });
 
     // Add document
-    const fakeImage = Buffer.from('fake-image-data');
+    const fakeImage = readFileSync('tests/fixtures/synthetic.jpg');
     const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
     const docBody = [
       `--${boundary}`,
@@ -224,7 +225,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/documents',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
       },
       payload: Buffer.from(docBody, 'binary'),
@@ -246,7 +247,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/selfie',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': `multipart/form-data; boundary=${selfieBoundary}`,
       },
       payload: Buffer.from(selfieBody, 'binary'),
@@ -257,7 +258,7 @@ describe('POST /user/submit', () => {
       method: 'POST',
       url: '/user/submit',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -287,7 +288,7 @@ describe('GET /user/submission', () => {
   beforeEach(async () => {
     await User.deleteMany({});
     await SubmissionModel.deleteMany({});
-    
+
     // Create a test user and get token
     await app.inject({
       method: 'POST',
@@ -326,7 +327,7 @@ describe('GET /user/submission', () => {
       method: 'GET',
       url: '/user/submission',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 

@@ -21,7 +21,7 @@ describe('POST /auth/logout', () => {
 
   beforeEach(async () => {
     await User.deleteMany({});
-    
+
     // Create a test user and get tokens
     await app.inject({
       method: 'POST',
@@ -60,7 +60,7 @@ describe('POST /auth/logout', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('message', 'Logged out successfully');
   });
@@ -75,7 +75,7 @@ describe('POST /auth/logout', () => {
     });
 
     expect(response.statusCode).toBe(401);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error');
   });
@@ -93,7 +93,7 @@ describe('POST /auth/logout', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error');
   });
@@ -111,7 +111,7 @@ describe('POST /auth/logout', () => {
     });
 
     expect(response.statusCode).toBe(401);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error');
   });

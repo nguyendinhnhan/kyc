@@ -1,4 +1,7 @@
 # 0006: Image storage strategy (local + S3-compatible)
+
+Implementation corrections and current limits: see [ADR-0008](0008-interview-readiness-corrections.md). Earlier implementation claims below are historical and are superseded where they conflict.
+
 Status: Accepted
 Date: 2026-10-14
 

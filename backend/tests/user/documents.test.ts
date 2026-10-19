@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { buildApp } from '../../src/server';
 import { User } from '../../src/models/User';
@@ -20,7 +21,7 @@ describe('POST /user/documents', () => {
     await app.close();
     await database.disconnect();
     // Clean up test uploads
-    const uploadsDir = path.join(__dirname, '../../uploads');
+    const uploadsDir = process.env.UPLOAD_DIR!;
     if (fs.existsSync(uploadsDir)) {
       const files = fs.readdirSync(uploadsDir);
       for (const file of files) {
@@ -32,7 +33,7 @@ describe('POST /user/documents', () => {
   beforeEach(async () => {
     await User.deleteMany({});
     await DocumentModel.deleteMany({});
-    
+
     // Create a test user and get token
     await app.inject({
       method: 'POST',
@@ -69,7 +70,7 @@ describe('POST /user/documents', () => {
   it('should upload a document', async () => {
     // Create a test file
     const testFilePath = path.join(__dirname, 'test-document.jpg');
-    fs.writeFileSync(testFilePath, 'fake image data');
+    fs.writeFileSync(testFilePath, readFileSync('tests/fixtures/synthetic.jpg').toString('binary'));
 
     try {
       // Create multipart form data
@@ -87,7 +88,7 @@ describe('POST /user/documents', () => {
         'Content-Disposition: form-data; name="file"; filename="test-document.jpg"',
         'Content-Type: image/jpeg',
         '',
-        'fake image data',
+        readFileSync('tests/fixtures/synthetic.jpg').toString('binary'),
         `--${boundary}--`,
       ].join('\r\n');
 
@@ -98,14 +99,11 @@ describe('POST /user/documents', () => {
           authorization: `Bearer ${accessToken}`,
           'content-type': `multipart/form-data; boundary=${boundary}`,
         },
-        payload: body,
+        payload: Buffer.from(body, 'binary'),
       });
 
-      console.log('Response status:', response.statusCode);
-      console.log('Response body:', response.body);
-
       expect(response.statusCode).toBe(201);
-      
+
       const responseBody = JSON.parse(response.body);
       expect(responseBody).toHaveProperty('message', 'Document uploaded successfully');
       expect(responseBody).toHaveProperty('document');
@@ -122,7 +120,7 @@ describe('POST /user/documents', () => {
 
   it('should validate document type', async () => {
     const testFilePath = path.join(__dirname, 'test-document.jpg');
-    fs.writeFileSync(testFilePath, 'fake image data');
+    fs.writeFileSync(testFilePath, readFileSync('tests/fixtures/synthetic.jpg').toString('binary'));
 
     try {
       // Create multipart form data with invalid type
@@ -140,7 +138,7 @@ describe('POST /user/documents', () => {
         'Content-Disposition: form-data; name="file"; filename="test-document.jpg"',
         'Content-Type: image/jpeg',
         '',
-        'fake image data',
+        readFileSync('tests/fixtures/synthetic.jpg').toString('binary'),
         `--${boundary}--`,
       ].join('\r\n');
 
@@ -151,7 +149,7 @@ describe('POST /user/documents', () => {
           authorization: `Bearer ${accessToken}`,
           'content-type': `multipart/form-data; boundary=${boundary}`,
         },
-        payload: body,
+        payload: Buffer.from(body, 'binary'),
       });
 
       expect(response.statusCode).toBe(400);
@@ -180,7 +178,7 @@ describe('GET /user/documents', () => {
   beforeEach(async () => {
     await User.deleteMany({});
     await DocumentModel.deleteMany({});
-    
+
     // Create a test user and get token
     await app.inject({
       method: 'POST',
@@ -224,7 +222,7 @@ describe('GET /user/documents', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('documents');
     expect(body.documents).toEqual([]);

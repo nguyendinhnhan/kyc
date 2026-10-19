@@ -22,7 +22,7 @@ describe('GET /user/personal-details', () => {
   beforeEach(async () => {
     await User.deleteMany({});
     await PersonalDetails.deleteMany({});
-    
+
     // Create a test user and get token
     await app.inject({
       method: 'POST',
@@ -66,7 +66,7 @@ describe('GET /user/personal-details', () => {
     });
 
     expect(response.statusCode).toBe(404);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('error', 'Personal details not found');
   });
@@ -103,7 +103,7 @@ describe('GET /user/personal-details', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    
+
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('personalDetails');
     expect(body.personalDetails).toHaveProperty('nationality', 'American');

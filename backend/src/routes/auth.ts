@@ -1,9 +1,9 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import jwt from 'jsonwebtoken';
+import { createSession, rotateSession, verifyRefresh } from '../services/session';
+import { Session } from '../models/Session';
 import { User } from '../models/User';
 import { RegisterInput, LoginInput, RefreshInput, LogoutInput } from '../schemas/auth';
 import { authenticate } from '../middleware/auth';
-import { config } from '../config';
 
 export async function registerHandler(
   request: FastifyRequest<{ Body: RegisterInput }>,
@@ -32,20 +32,19 @@ export async function registerHandler(
       },
     });
   } catch (error) {
-    request.log.error(error);
-    
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
+
     // Handle duplicate key error
     if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
       return reply.status(409).send({
         error: 'Email already registered',
       });
     }
-    
+
     // Handle validation errors
     if (error && typeof error === 'object' && 'name' in error && error.name === 'ValidationError') {
       return reply.status(400).send({
         error: 'Validation failed',
-        details: error.message,
       });
     }
 
@@ -78,18 +77,7 @@ export async function loginHandler(
       });
     }
 
-    // Generate JWT tokens
-    const accessToken = (request.server as any).jwt.sign(
-      { userId: user._id, email: user.email, role: user.role || 'user' },
-      { expiresIn: config.jwt.accessExpiresIn }
-    );
-
-    // Sign refresh token with separate secret
-    const refreshToken = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role || 'user', type: 'refresh' },
-      config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshExpiresIn as string | number }
-    );
+    const { accessToken, refreshToken } = await createSession(request.server, user);
 
     return reply.status(200).send({
       message: 'Login successful',
@@ -104,7 +92,7 @@ export async function loginHandler(
       },
     });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({
       error: 'Internal server error',
     });
@@ -118,22 +106,8 @@ export async function refreshTokenHandler(
   try {
     const { refreshToken } = request.body;
 
-    // Verify the refresh token using the separate refresh secret
-    let decoded: any;
-    try {
-      decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
-    } catch (error) {
-      return reply.status(401).send({
-        error: 'Invalid refresh token',
-      });
-    }
-
-    // Check if it's a refresh token (has type: 'refresh')
-    if (!decoded || decoded.type !== 'refresh') {
-      return reply.status(401).send({
-        error: 'Invalid refresh token',
-      });
-    }
+    const decoded = verifyRefresh(refreshToken);
+    if (!decoded) return reply.status(401).send({ error: 'Invalid refresh token' });
 
     // Find the user
     const user = await User.findById(decoded.userId);
@@ -143,26 +117,15 @@ export async function refreshTokenHandler(
       });
     }
 
-    // Generate new tokens
-    const newAccessToken = (request.server as any).jwt.sign(
-      { userId: user._id, email: user.email, role: user.role || 'user' },
-      { expiresIn: config.jwt.accessExpiresIn }
-    );
-
-    // Sign new refresh token with separate secret
-    const newRefreshToken = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role || 'user', type: 'refresh' },
-      config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshExpiresIn as string | number }
-    );
-
+    const rotated = await rotateSession(request.server, user, refreshToken, decoded.sessionId);
+    if (!rotated) return reply.status(401).send({ error: 'Invalid refresh token' });
     return reply.status(200).send({
       message: 'Token refreshed successfully',
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
+      accessToken: rotated.accessToken,
+      refreshToken: rotated.refreshToken,
     });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({
       error: 'Internal server error',
     });
@@ -174,24 +137,18 @@ export async function logoutHandler(
   reply: FastifyReply
 ) {
   try {
-    // Authentication middleware will verify the access token
-    // If we reach here, the token is valid
-    
-    const { refreshToken } = request.body;
-    
-    // In a production environment, you would:
-    // 1. Add the refresh token to a blacklist
-    // 2. Store the blacklist in Redis or database
-    // 3. Set TTL equal to token expiration
-    
-    // For this implementation, we'll just acknowledge the logout
-    // since tokens will expire naturally
-    
+    const current = request.user as unknown as { userId: string; sessionId: string };
+    const decoded = verifyRefresh(request.body.refreshToken);
+    if (!decoded || decoded.userId !== current.userId || decoded.sessionId !== current.sessionId) {
+      return reply.status(401).send({ error: 'Invalid refresh token' });
+    }
+    // Revoke the entire matching session, including access tokens and concurrent rotations.
+    await Session.deleteOne({ _id: current.sessionId, userId: current.userId });
     return reply.status(200).send({
       message: 'Logged out successfully',
     });
   } catch (error) {
-    request.log.error(error);
+    request.log.error({ code: 'OPERATION_FAILED' }, 'Request failed');
     return reply.status(500).send({
       error: 'Internal server error',
     });

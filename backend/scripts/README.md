@@ -29,9 +29,8 @@ node scripts/create-admin.js admin@kyc.com Admin123!
 ✓ Connected to MongoDB
 ✓ Admin user created successfully!
 
-Admin credentials:
+Admin account:
   Email: admin@kyc.com
-  Password: Admin123!
   Role: admin
 
 You can now login with these credentials in Postman.
