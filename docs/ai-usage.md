@@ -136,3 +136,13 @@ AI helped group the existing corrections into backend/contracts, Flutter, and sh
 documentation commits at the user's request. Staged diffs passed `git diff --cached
 --check`; no application behavior was changed or test suite rerun for this task.
 Earlier verification above remains historical evidence. No push or deployment was requested.
+
+## 2026-10-19 — System architecture documentation
+
+AI inspected Flutter routing/state/storage and backend handlers, services, models, and
+local deployment configuration to document the implemented system for R12. Added
+component, session-sequence, and submission-state Mermaid diagrams plus persistence,
+ownership, retry, and deployment boundaries. Explicitly distinguished supported
+`under_review` from an implemented transition and recorded production/resume gaps.
+Documentation-only change; no application tests were rerun. Local link validation and
+`git diff --check` results are reported with delivery; diagram rendering is unverified.

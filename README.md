@@ -137,6 +137,9 @@ The submitted commit remains on `main`; fixes are on `fix/interview-readiness`. 
 
 ## Architecture Decisions
 
+See the [system architecture](docs/system-architecture.md) for component diagrams,
+data ownership, authentication, upload/submission flows, and deployment limitations.
+
 All major architectural decisions are documented in [Architecture Decision Records (ADRs)](docs/adr/):
 
 - [ADR-0001](docs/adr/0001-repository-and-tdd.md): One repository, Node.js, TDD
