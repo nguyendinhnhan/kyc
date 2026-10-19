@@ -1,9 +1,11 @@
+import '../../auth/presentation/auth_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/submission_repository.dart';
 import '../domain/submission.dart';
 
 final submissionStateProvider =
     StateNotifierProvider<SubmissionNotifier, SubmissionState>((ref) {
+      ref.watch(authStateProvider.select((state) => state.user?.id));
       final repository = ref.watch(submissionRepositoryProvider);
       return SubmissionNotifier(repository);
     });
@@ -27,10 +29,11 @@ class SubmissionState {
     String? errorMessage,
     bool? isSubmitted,
     bool clearError = false,
+    bool clearSubmission = false,
   }) {
     return SubmissionState(
       isLoading: isLoading ?? this.isLoading,
-      submission: submission ?? this.submission,
+      submission: clearSubmission ? null : (submission ?? this.submission),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isSubmitted: isSubmitted ?? this.isSubmitted,
     );
@@ -47,10 +50,13 @@ class SubmissionNotifier extends StateNotifier<SubmissionState> {
 
     final result = await _repository.getSubmission();
 
+    if (!mounted) return;
+
     if (result.isSuccess) {
       state = state.copyWith(
         isLoading: false,
         submission: result.submission,
+        clearSubmission: result.submission == null,
         isSubmitted: result.submission?.isSubmitted ?? false,
       );
     } else {
@@ -62,6 +68,8 @@ class SubmissionNotifier extends StateNotifier<SubmissionState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     final result = await _repository.submitKYC();
+
+    if (!mounted) return false;
 
     if (result.isSuccess && result.submission != null) {
       // Reload submission to get the updated data
@@ -89,12 +97,14 @@ class SubmissionNotifier extends StateNotifier<SubmissionState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     final result = await _repository.resetSubmission();
+    if (!mounted) return;
 
     if (result.isSuccess && result.submission != null) {
       state = state.copyWith(
         isLoading: false,
         submission: result.submission,
-        isSubmitted: false,
+        clearSubmission: result.submission == null,
+        isSubmitted: result.submission!.isSubmitted,
       );
     } else {
       state = state.copyWith(isLoading: false, errorMessage: result.message);

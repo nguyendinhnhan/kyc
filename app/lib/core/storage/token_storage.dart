@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -8,7 +9,7 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
 class TokenStorage {
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
-  
+
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<void> saveTokens({
@@ -29,10 +30,27 @@ class TokenStorage {
     return await _storage.read(key: _refreshTokenKey);
   }
 
+  Future<String> pendingSubmissionKey() async {
+    const key = 'pending_submission_key';
+    final existing = await _storage.read(key: key);
+    if (existing != null) return existing;
+    final random = Random.secure();
+    final value = List.generate(
+      32,
+      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
+    await _storage.write(key: key, value: value);
+    return value;
+  }
+
+  Future<void> clearSubmissionKey() =>
+      _storage.delete(key: 'pending_submission_key');
+
   Future<void> clearTokens() async {
     await Future.wait([
       _storage.delete(key: _accessTokenKey),
       _storage.delete(key: _refreshTokenKey),
+      clearSubmissionKey(),
     ]);
   }
 

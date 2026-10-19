@@ -1,13 +1,14 @@
+import '../../auth/presentation/auth_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import '../data/selfie_repository.dart';
 import '../domain/selfie.dart';
 import '../../submission/presentation/submission_state.dart';
-import '../../submission/domain/submission.dart';
 
 final selfieStateProvider = StateNotifierProvider<SelfieNotifier, SelfieState>((
   ref,
 ) {
+  ref.watch(authStateProvider.select((state) => state.user?.id));
   final repository = ref.watch(selfieRepositoryProvider);
   return SelfieNotifier(repository, ref);
 });
@@ -52,6 +53,8 @@ class SelfieNotifier extends StateNotifier<SelfieState> {
 
     final result = await _repository.getSelfie();
 
+    if (!mounted) return;
+
     if (result.isSuccess) {
       state = state.copyWith(
         isLoading: false,
@@ -68,13 +71,15 @@ class SelfieNotifier extends StateNotifier<SelfieState> {
 
     final result = await _repository.uploadSelfie(file: file);
 
+    if (!mounted) return false;
+
     if (result.isSuccess && result.selfie != null) {
       // Reload selfie to get the updated data
       await loadSelfie();
+      if (!mounted) return false;
 
-      // Clear selfie rejection from submission state (local update only,
-      // the backend already handles clearing via clearRejectionField)
-      _clearSelfieRejectionLocal();
+      // Refresh server-owned workflow status after the edit.
+      await _ref.read(submissionStateProvider.notifier).loadSubmission();
 
       return true;
     } else {
@@ -89,45 +94,5 @@ class SelfieNotifier extends StateNotifier<SelfieState> {
 
   void reset() {
     state = SelfieState();
-  }
-
-  /// Update local submission state to remove selfie rejection errors.
-  /// The backend already handles clearing rejection details when the selfie
-  /// is uploaded (via clearRejectionField), so we only need a local update.
-  void _clearSelfieRejectionLocal() {
-    final submissionNotifier = _ref.read(submissionStateProvider.notifier);
-    final currentSubmission = submissionNotifier.state.submission;
-
-    if (currentSubmission?.rejectionDetails != null) {
-      final rejectionDetails = currentSubmission!.rejectionDetails!;
-
-      // Create new rejection details without selfie
-      final updatedRejection = RejectionDetails(
-        personalDetails: rejectionDetails.personalDetails,
-        documents: rejectionDetails.documents,
-        generalNotes: rejectionDetails.generalNotes,
-      );
-
-      // Check if all rejections are now cleared
-      final hasAnyErrors =
-          updatedRejection.hasPersonalDetailsErrors ||
-          updatedRejection.hasDocumentErrors ||
-          updatedRejection.hasSelfieErrors;
-
-      // Update submission with remaining errors (or null if all cleared)
-      final updatedSubmission = Submission(
-        id: currentSubmission.id,
-        userId: currentSubmission.userId,
-        status: currentSubmission.status,
-        submittedAt: currentSubmission.submittedAt,
-        reviewedAt: currentSubmission.reviewedAt,
-        notes: currentSubmission.notes,
-        rejectionDetails: hasAnyErrors ? updatedRejection : null,
-      );
-
-      submissionNotifier.state = submissionNotifier.state.copyWith(
-        submission: updatedSubmission,
-      );
-    }
   }
 }

@@ -66,6 +66,7 @@ flutter:
   # Environment files
   assets:
     - .env.development
+    - .env.staging
     - .env.production
 
   # To add assets to your application, add an assets section, like this:
