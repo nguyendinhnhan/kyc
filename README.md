@@ -4,7 +4,7 @@ A Flutter mobile app (iOS + Android) with a Node.js backend for identity verific
 
 ## Overview
 
-This project implements a complete KYC onboarding flow:
+This project contains a KYC onboarding flow. Automated checks and device verification have different scopes; see the [interview guide](docs/interview-demo.md) for evidence and remaining limits:
 - User authentication (login, session handling, logout)
 - Personal details collection and validation
 - ID document capture (passport, national ID, driver's licence)
@@ -29,17 +29,17 @@ This project implements a complete KYC onboarding flow:
 
 ### Mobile
 - **Framework**: Flutter (iOS + Android)
-- **State Management**: Riverpod with code generation
+- **State Management**: Riverpod StateNotifier providers
 - **HTTP Client**: Dio with auth interceptors
 - **Secure Storage**: flutter_secure_storage
 
 ### Storage
 - **Development**: Local filesystem
-- **Production**: S3-compatible (AWS S3, Cloudflare R2, or MinIO)
+- **Production**: S3-compatible storage is planned; only local storage is implemented
 
 ### Testing
 - **Approach**: Test-Driven Development (TDD)
-- **Backend**: Vitest or Jest
+- **Backend**: Vitest
 - **Mobile**: flutter_test
 
 ## Project Structure
@@ -48,7 +48,7 @@ This project implements a complete KYC onboarding flow:
 kyc/
 ├── app/                   # Flutter mobile app
 ├── backend/             # Node.js + Fastify backend
-├── contracts/           # API specifications (OpenAPI)
+├── contracts/           # API contracts (Markdown)
 ├── docs/                # Documentation
 │   ├── adr/            # Architecture Decision Records
 │   ├── requirements.md # Assignment requirements
@@ -59,12 +59,18 @@ kyc/
 └── README.md            # This file
 ```
 
+## Interview-readiness fixes
+
+The submitted commit remains on `main`; fixes are on `fix/interview-readiness`. See
+[the demo guide](docs/interview-demo.md) for current start/check commands and
+[ADR-0008](docs/adr/0008-interview-readiness-corrections.md) for corrections and trade-offs.
+
 ## Getting Started
 
 ### Prerequisites
 
-- **Node.js** 18+ and npm/yarn
-- **Flutter** 3.16+ with iOS/Android setup
+- **Node.js** compatible with the installed dependency engines, and npm
+- **Flutter** with Dart 3.10.7 or newer and iOS/Android setup
 - **Docker** (for local MongoDB) OR **MongoDB Atlas** account (free tier)
 - **Xcode** (for iOS development)
 - **Android Studio** (for Android development)
@@ -146,22 +152,21 @@ See [tech-stack-summary.md](docs/tech-stack-summary.md) for a complete overview.
 ## Security Considerations
 
 ### Sensitive Data
-- PII (personally identifiable information) is encrypted at rest
+- MongoDB identity fields and local images are not application-encrypted; use synthetic demo data
 - Tokens are stored in platform secure storage (Keychain/Keystore)
-- Images are encrypted in production (S3 server-side encryption)
-- No sensitive data in logs, commits, or error messages
+- Production storage encryption and key management remain planned
+- Request errors log allowlisted codes; auth headers and credential fields are redacted
 
 ### Authentication
 - Short-lived access tokens (2 hours)
 - Long-lived refresh tokens (30 days) with separate signing secret
-- Refresh token rotation detects token theft
+- Atomic refresh-token rotation rejects reuse; logout revokes its server session
 - HTTPS required (except local development)
 
 ### Image Handling
 - Images validated for type and size
 - Ownership checks on all image operations
-- Pre-signed URLs with short expiry
-- Audit logging for image access
+- Private local files and authenticated image reads; signed URLs and access audit trails remain planned
 
 ## Testing Strategy
 
@@ -221,13 +226,13 @@ API specifications are available in [contracts/](contracts/):
 - [x] Admin API (approve/reject with field-level rejection)
 - [x] Verification status tracking with rejection/resubmission
 - [x] Sensitive data handling (log redaction, ownership isolation, secure storage)
-- [x] Resume capability for interrupted flows
+- [ ] Full process-death/offline resume evidence (saved backend data can be reloaded; unsaved local edits are not durably protected)
 
 ### Upcoming Features
 - [ ] Pre-signed upload URLs — direct image upload to S3, bypassing the backend for large files
 - [ ] Admin UI — web dashboard for reviewing submissions, approving/rejecting, and viewing stats
 - [ ] Submission history — full audit trail of status changes and admin actions
-- [ ] Token blacklist — server-side refresh token invalidation on logout (Redis-backed)
+- [x] Server session revocation on logout (MongoDB; no Redis dependency)
 - [ ] Field-level encryption for PII in MongoDB
 - [ ] OCR integration for automatic document data extraction
 - [ ] Biometric face matching against ID photo
